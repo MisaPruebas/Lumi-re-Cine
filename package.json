@@ -1,0 +1,21 @@
+{
+  "name": "lumiere-cine",
+  "version": "2.0.0",
+  "description": "Sistema LUMIÈRE Cine — API Express + MySQL",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.0",
+    "express-session": "^1.18.1",
+    "mysql2": "^3.11.4",
+    "nodemailer": "^8.0.7",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0"
+  }
+}

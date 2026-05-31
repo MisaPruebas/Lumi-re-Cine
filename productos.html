@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>LUMIÈRE — Productos</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Bebas+Neue&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .barw{background:#111;height:5px;border-radius:2px;overflow:hidden;width:140px}
+  .bar{height:100%;border-radius:2px;transition:width .5s}
+</style>
+</head>
+<body>
+
+<div class="phead">
+  <div class="plabel">Inventario · Dulcería</div>
+  <h1 class="ptitle">Productos</h1>
+  <p class="psub">Control de stock, precios y reabastecimientos</p>
+</div>
+
+<section>
+  <div class="cards c4" id="kpis"></div>
+</section>
+
+<section>
+  <div class="row" style="margin-bottom:22px">
+    <div class="stitle" style="margin-bottom:0">Catálogo</div>
+    <div class="spacer"></div>
+    <button class="btn bg" onclick="abrirNuevo()">+ Nuevo producto</button>
+  </div>
+  <table id="tbl">
+    <thead><tr>
+      <th>Producto</th><th>SKU</th><th>Precio</th><th>Stock</th><th>Mínimo</th><th>Estado</th><th style="width:240px">Acciones</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="empty" class="empty" style="display:none">No hay productos registrados.</div>
+</section>
+
+<footer><p>© 2026 Lumière Cine</p><p>Vista: Productos</p></footer>
+
+<div class="moverlay" id="mprod">
+  <div class="modal">
+    <div class="modaltitle" id="mtitle">Nuevo producto</div>
+    <div class="frow">
+      <div class="fg"><label>Nombre</label><input id="f_nombre" placeholder="Palomitas grandes"></div>
+      <div class="fg"><label>SKU</label><input id="f_sku" placeholder="SKU-001"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>Precio (MXN)</label><input id="f_precio" type="number" step="0.01" value="0"></div>
+      <div class="fg"><label>Unidades</label><input id="f_unidades" type="number" value="0"></div>
+    </div>
+    <div class="frow f1">
+      <div class="fg"><label>Stock mínimo</label><input id="f_minimo" type="number" value="0"></div>
+    </div>
+    <div class="macts">
+      <button class="btn bo" onclick="closeModal('mprod')">Cancelar</button>
+      <button class="btn bg" onclick="guardar()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="moverlay" id="mstock">
+  <div class="modal">
+    <div class="modaltitle">Ajustar stock — <span id="stockName"></span></div>
+    <div class="frow f1">
+      <div class="fg"><label>Cantidad a agregar (o negativo para descontar)</label><input id="f_delta" type="number" value="100"></div>
+    </div>
+    <div class="macts">
+      <button class="btn bo" onclick="closeModal('mstock')">Cancelar</button>
+      <button class="btn bt" onclick="aplicarStock()">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+renderTopbar('productos');
+
+if (!['ag','al'].includes(session.role)) {
+  document.body.innerHTML = '<div class="empty" style="padding:120px">Sin permisos para esta sección.</div>';
+}
+
+let editing = null, stockId = null;
+
+function estado(p){
+  if (p.unidades <= p.minimo*0.4) return { txt:'Crítico', cls:'brd', color:'var(--red)', pct:Math.max(5, Math.round(p.unidades/Math.max(p.minimo,1)*40)) };
+  if (p.unidades < p.minimo) return { txt:'Bajo', cls:'bam', color:'var(--gold-dim)', pct:Math.round(p.unidades/Math.max(p.minimo,1)*60) };
+  return { txt:'Óptimo', cls:'bgn', color:'var(--teal)', pct:Math.min(100, Math.round(p.unidades/Math.max(p.minimo*2,1)*100)) };
+}
+
+async function cargar(){
+  try {
+    const data = await api('GET','/api/productos');
+    const tb = document.getElementById('tbody');
+    tb.innerHTML = '';
+    document.getElementById('empty').style.display = data.length ? 'none' : 'block';
+    document.getElementById('tbl').style.display = data.length ? '' : 'none';
+
+    const total = data.length;
+    const criticos = data.filter(p=>p.unidades<=p.minimo*0.4).length;
+    const bajos = data.filter(p=>p.unidades>p.minimo*0.4 && p.unidades<p.minimo).length;
+    const valor = data.reduce((s,p)=>s + (p.precio||0)*(p.unidades||0), 0);
+    document.getElementById('kpis').innerHTML = `
+      <div class="card"><div class="clabel">SKUs activos</div><div class="cval bv">${total}</div><div class="csub">productos</div></div>
+      <div class="card"><div class="clabel">Stock crítico</div><div class="cval rv">${criticos}</div><div class="csub">requieren reabasto urgente</div></div>
+      <div class="card"><div class="clabel">Stock bajo</div><div class="cval gv">${bajos}</div><div class="csub">por debajo del mínimo</div></div>
+      <div class="card"><div class="clabel">Valor inventario</div><div class="cval gv">$${valor.toLocaleString('es-MX',{maximumFractionDigits:0})}</div><div class="csub">MXN</div></div>`;
+
+    data.forEach(p => {
+      const e = estado(p);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${p.nombre}</td>
+        <td class="tdmono">${p.sku||'—'}</td>
+        <td class="tdmono">$${parseFloat(p.precio||0).toFixed(2)}</td>
+        <td class="tdmono">${p.unidades}<div class="barw" style="margin-top:5px"><div class="bar" style="width:${e.pct}%;background:${e.color}"></div></div></td>
+        <td class="tdmono">${p.minimo}</td>
+        <td><span class="badge ${e.cls}">${e.txt}</span></td>
+        <td><div class="acts">
+          <button class="btn bt bsm" data-act="stock">Reabastecer</button>
+          <button class="btn bo bsm" data-act="edit">Editar</button>
+          <button class="btn br bsm" data-act="del">×</button>
+        </div></td>`;
+      tr.querySelector('[data-act=stock]').onclick = () => abrirStock(p);
+      tr.querySelector('[data-act=edit]').onclick = () => abrirEditar(p);
+      tr.querySelector('[data-act=del]').onclick = () => eliminar(p);
+      tb.appendChild(tr);
+    });
+    bindHoverAll();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+function abrirNuevo(){
+  editing = null;
+  document.getElementById('mtitle').textContent = 'Nuevo producto';
+  ['f_nombre','f_sku'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('f_precio').value = 0;
+  document.getElementById('f_unidades').value = 0;
+  document.getElementById('f_minimo').value = 0;
+  openModal('mprod');
+}
+
+function abrirEditar(p){
+  editing = p.id_producto;
+  document.getElementById('mtitle').textContent = 'Editar producto';
+  document.getElementById('f_nombre').value = p.nombre;
+  document.getElementById('f_sku').value = p.sku||'';
+  document.getElementById('f_precio').value = p.precio||0;
+  document.getElementById('f_unidades').value = p.unidades||0;
+  document.getElementById('f_minimo').value = p.minimo||0;
+  openModal('mprod');
+}
+
+async function guardar(){
+  const body = {
+    nombre: document.getElementById('f_nombre').value.trim(),
+    sku: document.getElementById('f_sku').value.trim(),
+    precio: parseFloat(document.getElementById('f_precio').value),
+    unidades: parseInt(document.getElementById('f_unidades').value),
+    minimo: parseInt(document.getElementById('f_minimo').value)
+  };
+  if (!body.nombre) { toast('Nombre obligatorio','err'); return; }
+  try {
+    if (editing) await api('PUT','/api/productos/'+editing, body);
+    else await api('POST','/api/productos', body);
+    closeModal('mprod');
+    toast(editing?'Producto actualizado':'Producto creado');
+    cargar();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function eliminar(p){
+  if (!confirm('¿Eliminar "'+p.nombre+'"?')) return;
+  try { await api('DELETE','/api/productos/'+p.id_producto); toast('Eliminado'); cargar(); }
+  catch(e){ toast(e.message,'err'); }
+}
+
+function abrirStock(p){
+  stockId = p.id_producto;
+  document.getElementById('stockName').textContent = p.nombre;
+  document.getElementById('f_delta').value = 100;
+  openModal('mstock');
+}
+
+async function aplicarStock(){
+  const delta = parseInt(document.getElementById('f_delta').value);
+  if (!delta) return;
+  try {
+    await api('POST','/api/productos/'+stockId+'/stock', { delta });
+    closeModal('mstock');
+    toast('Stock actualizado');
+    cargar();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+cargar();
+</script>
+</body>
+</html>

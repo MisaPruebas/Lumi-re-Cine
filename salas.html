@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>LUMIÈRE — Salas</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Bebas+Neue&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .seatgrid{display:flex;flex-direction:column;gap:6px;padding:24px;background:var(--card);border:1px solid var(--border);overflow-x:auto}
+  .seatrow{display:flex;align-items:center;gap:6px}
+  .rowlabel{width:24px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-align:center}
+  .seat{width:22px;height:22px;border:1px solid var(--border);background:#0a0a0a;font-size:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:'DM Mono',monospace}
+  .seat.vip{border-color:var(--gold);color:var(--gold)}
+  .scrarea{padding:14px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--gold-dim);text-transform:uppercase;border-bottom:1px solid var(--gold-dim);margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<div class="phead">
+  <div class="plabel">Gestión · Salas y asientos</div>
+  <h1 class="ptitle">Salas</h1>
+  <p class="psub">Configura las salas de proyección y sus distribuciones</p>
+</div>
+
+<section>
+  <div class="row" style="margin-bottom:22px">
+    <div class="stitle" style="margin-bottom:0">Filtrar</div>
+    <div class="spacer"></div>
+    <select id="filtroSucursal" style="width:240px" onchange="cargar()"></select>
+    <button class="btn bg" onclick="abrirNueva()">+ Nueva sala</button>
+  </div>
+  <table id="tbl">
+    <thead><tr>
+      <th>Sucursal</th><th>Nombre</th><th>Tipo</th><th>Capacidad</th><th style="width:240px">Acciones</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="empty" class="empty" style="display:none">No hay salas registradas.</div>
+</section>
+
+<section id="secAsientos" style="display:none">
+  <div class="stitle">Distribución de asientos — <span id="salaName"></span></div>
+  <div class="seatgrid">
+    <div class="scrarea">— Pantalla —</div>
+    <div id="seatBody"></div>
+  </div>
+</section>
+
+<footer><p>© 2026 Lumière Cine</p><p>Vista: Salas y asientos</p></footer>
+
+<div class="moverlay" id="msala">
+  <div class="modal">
+    <div class="modaltitle" id="mtitle">Nueva sala</div>
+    <div class="frow">
+      <div class="fg"><label>Sucursal</label><select id="f_suc"></select></div>
+      <div class="fg"><label>Nombre</label><input id="f_nombre" placeholder="Sala 1"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>Tipo</label>
+        <select id="f_tipo">
+          <option>Estándar</option><option>IMAX</option><option>4DX</option>
+          <option>Dolby Atmos</option><option>Premium</option><option>3D</option>
+        </select>
+      </div>
+      <div class="fg"><label>Capacidad</label><input id="f_cap" type="number" value="180" min="1"></div>
+    </div>
+    <div class="macts">
+      <button class="btn bo" onclick="closeModal('msala')">Cancelar</button>
+      <button class="btn bg" onclick="guardar()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="moverlay" id="masientos">
+  <div class="modal">
+    <div class="modaltitle">Generar asientos</div>
+    <p style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:18px;letter-spacing:1px">
+      Esto eliminará la distribución existente y creará una nueva con los parámetros indicados.
+    </p>
+    <div class="frow">
+      <div class="fg"><label>Filas</label><input id="a_filas" type="number" value="10" min="1" max="26"></div>
+      <div class="fg"><label>Asientos por fila</label><input id="a_cols" type="number" value="14" min="1" max="30"></div>
+    </div>
+    <div class="frow f1">
+      <div class="fg"><label>Filas VIP (separadas por coma, ej: I,J)</label><input id="a_vip" placeholder="I,J"></div>
+    </div>
+    <div class="macts">
+      <button class="btn bo" onclick="closeModal('masientos')">Cancelar</button>
+      <button class="btn bg" onclick="generarAsientos()">Generar</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+renderTopbar('salas');
+
+if (!['ag','al'].includes(session.role)) {
+  document.body.innerHTML = '<div class="empty" style="padding:120px">Sin permisos para esta sección.</div>';
+}
+
+let editing = null;
+let salaSel = null;
+let sucursales = [];
+
+async function cargarSucursales(){
+  sucursales = await api('GET','/api/sucursales');
+  const flt = document.getElementById('filtroSucursal');
+  const sel = document.getElementById('f_suc');
+  flt.innerHTML = '<option value="">Todas las sucursales</option>' + sucursales.map(s=>`<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
+  sel.innerHTML = sucursales.map(s=>`<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
+  if (session.role === 'al' && session.sucursal) {
+    const m = sucursales.find(s=>s.nombre===session.sucursal);
+    if (m) { flt.value = m.id_sucursal; flt.disabled = true; sel.value = m.id_sucursal; sel.disabled = true; }
+  }
+}
+
+async function cargar(){
+  try {
+    const sucId = document.getElementById('filtroSucursal').value;
+    const url = '/api/salas' + (sucId ? '?id_sucursal='+sucId : '');
+    const data = await api('GET', url);
+    const tb = document.getElementById('tbody');
+    tb.innerHTML = '';
+    document.getElementById('empty').style.display = data.length ? 'none' : 'block';
+    document.getElementById('tbl').style.display = data.length ? '' : 'none';
+    data.forEach(s => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="tdmono">${s.sucursal}</td>
+        <td>${s.nombre}</td>
+        <td><span class="badge btl">${s.tipo||'—'}</span></td>
+        <td class="tdmono">${s.capacidad} asientos</td>
+        <td><div class="acts">
+          <button class="btn bo bsm" data-act="ver">Asientos</button>
+          <button class="btn bo bsm" data-act="edit">Editar</button>
+          <button class="btn br bsm" data-act="del">Eliminar</button>
+        </div></td>`;
+      tr.querySelector('[data-act=ver]').onclick = () => verAsientos(s);
+      tr.querySelector('[data-act=edit]').onclick = () => abrirEditar(s);
+      tr.querySelector('[data-act=del]').onclick = () => eliminar(s);
+      tb.appendChild(tr);
+    });
+    bindHoverAll();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function verAsientos(s){
+  salaSel = s;
+  document.getElementById('secAsientos').style.display = '';
+  document.getElementById('salaName').textContent = s.sucursal+' · '+s.nombre+' ('+(s.tipo||'')+')';
+  try {
+    const asientos = await api('GET','/api/salas/'+s.id_sala+'/asientos');
+    const body = document.getElementById('seatBody');
+    body.innerHTML = '';
+    if (!asientos.length) {
+      body.innerHTML = '<div class="empty" style="padding:30px">Sin distribución. <button class="btn bg bsm" onclick="abrirAsientos()">Generar</button></div>';
+      bindHoverAll();
+      return;
+    }
+    const filas = {};
+    asientos.forEach(a=>{ (filas[a.fila]=filas[a.fila]||[]).push(a); });
+    Object.keys(filas).sort().forEach(f=>{
+      const row = document.createElement('div');row.className='seatrow';
+      row.innerHTML = `<div class="rowlabel">${f}</div>`;
+      filas[f].sort((a,b)=>a.numero-b.numero).forEach(a=>{
+        const sd = document.createElement('div');
+        sd.className = 'seat'+(a.tipo==='VIP'?' vip':'');
+        sd.textContent = a.numero;
+        row.appendChild(sd);
+      });
+      body.appendChild(row);
+    });
+    const acts = document.createElement('div');
+    acts.style.cssText='margin-top:18px;text-align:center';
+    acts.innerHTML = '<button class="btn bo bsm" onclick="abrirAsientos()">Regenerar distribución</button>';
+    body.appendChild(acts);
+    bindHoverAll();
+    document.getElementById('secAsientos').scrollIntoView({behavior:'smooth'});
+  } catch(e){ toast(e.message,'err'); }
+}
+
+function abrirNueva(){
+  editing = null;
+  document.getElementById('mtitle').textContent = 'Nueva sala';
+  document.getElementById('f_nombre').value = '';
+  document.getElementById('f_tipo').value = 'Estándar';
+  document.getElementById('f_cap').value = 180;
+  openModal('msala');
+}
+
+function abrirEditar(s){
+  editing = s.id_sala;
+  document.getElementById('mtitle').textContent = 'Editar sala';
+  document.getElementById('f_suc').value = s.id_sucursal;
+  document.getElementById('f_nombre').value = s.nombre;
+  document.getElementById('f_tipo').value = s.tipo || 'Estándar';
+  document.getElementById('f_cap').value = s.capacidad;
+  openModal('msala');
+}
+
+async function guardar(){
+  const body = {
+    id_sucursal: parseInt(document.getElementById('f_suc').value),
+    nombre: document.getElementById('f_nombre').value.trim(),
+    tipo: document.getElementById('f_tipo').value,
+    capacidad: parseInt(document.getElementById('f_cap').value)
+  };
+  if (!body.nombre) { toast('Nombre obligatorio','err'); return; }
+  try {
+    if (editing) await api('PUT','/api/salas/'+editing, body);
+    else await api('POST','/api/salas', body);
+    closeModal('msala');
+    toast(editing?'Sala actualizada':'Sala creada');
+    cargar();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function eliminar(s){
+  if (!confirm('¿Eliminar la sala "'+s.nombre+'"?')) return;
+  try { await api('DELETE','/api/salas/'+s.id_sala); toast('Eliminada'); cargar(); document.getElementById('secAsientos').style.display='none'; }
+  catch(e){ toast(e.message,'err'); }
+}
+
+function abrirAsientos(){ openModal('masientos'); }
+
+async function generarAsientos(){
+  const filas = parseInt(document.getElementById('a_filas').value);
+  const columnas = parseInt(document.getElementById('a_cols').value);
+  const filasVip = document.getElementById('a_vip').value.split(',').map(s=>s.trim()).filter(Boolean);
+  if (!salaSel) return;
+  try {
+    await api('POST','/api/salas/'+salaSel.id_sala+'/asientos', { filas, columnas, filasVip });
+    closeModal('masientos');
+    toast('Asientos generados');
+    verAsientos(salaSel);
+  } catch(e){ toast(e.message,'err'); }
+}
+
+(async()=>{ await cargarSucursales(); cargar(); })();
+</script>
+</body>
+</html>

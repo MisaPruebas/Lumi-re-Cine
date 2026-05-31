@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>LUMIÈRE — Ventas</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Bebas+Neue&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<style>
+  .scrarea{position:relative;height:50px;margin:24px auto 32px;text-align:center;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--gold-dim)}
+  .scrlabel{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:6px;color:var(--gold-dim);text-transform:uppercase}
+  .sgrid{display:flex;flex-direction:column;gap:7px;align-items:center;padding:30px;background:var(--card);border:1px solid var(--border)}
+  .srow{display:flex;align-items:center;gap:7px}
+  .srlabel{width:20px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-align:center}
+  .seat{width:26px;height:26px;border:1px solid var(--border);background:#0a0a0a;display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;cursor:none;transition:all .2s}
+  .seat:hover{border-color:var(--gold);color:var(--gold)}
+  .seat.vip{border-color:var(--gold-dim);color:var(--gold)}
+  .seat.sel{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .seat.occ{background:var(--red);border-color:var(--red);color:#fff;cursor:not-allowed;opacity:.6}
+  .slegend{display:flex;gap:24px;justify-content:center;margin-top:18px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+  .sleg{display:flex;align-items:center;gap:8px}
+  .sleg-dot{width:14px;height:14px;border:1px solid var(--border);background:#0a0a0a}
+  .sleg-dot.sel{background:var(--teal);border-color:var(--teal)}
+  .sleg-dot.occ{background:var(--red);border-color:var(--red)}
+  .sleg-dot.vip{border-color:var(--gold);color:var(--gold)}
+  .ssum{margin-top:24px;background:var(--card);border:1px solid var(--gold-dim);padding:24px}
+  .ssumtitle{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+  .scnt{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px}
+  .scnt span{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-left:8px}
+  .stotal{margin-top:6px;font-size:16px}
+  .stotal strong{color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px}
+  .prodgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:14px}
+  .prodc{border:1px solid var(--border);padding:14px;background:var(--card);display:flex;flex-direction:column;gap:6px}
+  .prodn{font-size:14px}
+  .prodp{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold)}
+  .prodq{display:flex;gap:6px;align-items:center;margin-top:6px}
+  .prodq button{width:24px;height:24px;border:1px solid var(--border);background:#0a0a0a;color:var(--white);cursor:none}
+  .prodq input{width:48px;text-align:center;padding:4px}
+  .fnpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .fncard{border:1px solid var(--border);padding:16px;background:var(--card);cursor:none;transition:all .2s}
+  .fncard:hover{border-color:var(--gold)}
+  .fncard.on{border-color:var(--teal);background:rgba(15,110,86,.06)}
+  .fnct{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px}
+  .fncm{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:6px;line-height:1.6}
+  .fncp{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="phead">
+  <div class="plabel" id="phl">Ventas</div>
+  <h1 class="ptitle" id="pht">Ventas</h1>
+  <p class="psub" id="phs"></p>
+</div>
+
+<section id="secHist">
+  <div class="row" style="margin-bottom:22px">
+    <div class="stitle" style="margin-bottom:0" id="histTitle">Historial</div>
+    <div class="spacer"></div>
+    <select id="filtroSucursal" style="width:220px" onchange="cargarHist()"></select>
+    <input id="filtroFecha" type="date" style="width:160px" onchange="cargarHist()">
+    <button class="btn bo bsm" onclick="document.getElementById('filtroFecha').value='';cargarHist()">Limpiar</button>
+  </div>
+  <div class="cards c4" id="kpis"></div>
+  <table id="tbl" style="margin-top:22px">
+    <thead><tr>
+      <th>Fecha</th><th>Cliente</th><th>Película</th><th>Sucursal · Sala</th><th>Función</th><th>Asiento</th><th>Total</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="empty" class="empty" style="display:none">Sin ventas para los filtros seleccionados.</div>
+</section>
+
+<section id="secCompra" style="display:none">
+  <div class="stitle">1. Selecciona una función</div>
+  <div class="row" style="margin-bottom:14px">
+    <select id="cSuc" style="width:220px" onchange="cargarFunciones()"></select>
+    <input id="cFecha" type="date" style="width:160px" onchange="cargarFunciones()">
+  </div>
+  <div class="fnpick" id="fnPick"></div>
+</section>
+
+<section id="secAsientos" style="display:none">
+  <div class="stitle">2. Selecciona tus asientos</div>
+  <div id="funcInfo" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px;letter-spacing:2px;text-transform:uppercase"></div>
+  <div class="scrarea"><div class="scrlabel">Pantalla</div></div>
+  <div class="sgrid" id="sgrid"></div>
+  <div class="slegend">
+    <div class="sleg"><div class="sleg-dot"></div>Disponible</div>
+    <div class="sleg"><div class="sleg-dot sel"></div>Seleccionado</div>
+    <div class="sleg"><div class="sleg-dot occ"></div>Ocupado</div>
+    <div class="sleg"><div class="sleg-dot vip"></div>VIP</div>
+  </div>
+</section>
+
+<section id="secProductos" style="display:none">
+  <div class="stitle">3. Dulcería (opcional)</div>
+  <div class="prodgrid" id="prodGrid"></div>
+</section>
+
+<section id="secResumen" style="display:none">
+  <div class="ssum">
+    <div class="ssumtitle">Resumen de compra</div>
+    <div class="scnt" id="scnt">0<span>boletos</span></div>
+    <div id="resDetalle" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:8px;line-height:1.7"></div>
+    <div class="stotal" id="stotal">Total: <strong>$0.00</strong></div>
+    <button class="btn bg" style="width:100%;margin-top:18px" onclick="confirmarCompra()">Confirmar compra</button>
+  </div>
+</section>
+
+<footer><p>© 2026 Lumière Cine</p><p>Vista: Ventas</p></footer>
+
+<script src="app.js"></script>
+<script>
+renderTopbar('ventas');
+
+const role = session.role;
+const esCliente = role === 'c';
+
+if (esCliente) {
+  document.getElementById('phl').textContent = 'Boletería · Compra de boletos';
+  document.getElementById('pht').textContent = 'Compra tus boletos';
+  document.getElementById('phs').textContent = 'Selecciona función, asientos y completa tu pedido';
+  document.getElementById('secCompra').style.display = '';
+  document.getElementById('histTitle').textContent = 'Mis compras';
+} else {
+  document.getElementById('phl').textContent = (role==='ag'?'Admin global':'Admin local')+' · Reporte de ventas';
+  document.getElementById('pht').textContent = 'Ventas';
+  document.getElementById('phs').textContent = 'Historial de boletos vendidos y ingresos';
+}
+
+let sucursales = [];
+
+async function cargarSucursales(){
+  sucursales = await api('GET','/api/sucursales');
+  const flt = document.getElementById('filtroSucursal');
+  flt.innerHTML = '<option value="">Todas las sucursales</option>' + sucursales.map(s=>`<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
+  if (role === 'al' && session.sucursal) {
+    const m = sucursales.find(s=>s.nombre===session.sucursal);
+    if (m) { flt.value = m.id_sucursal; flt.disabled = true; }
+  }
+  if (role === 'c') flt.style.display='none';
+  if (esCliente) {
+    const cs = document.getElementById('cSuc');
+    cs.innerHTML = sucursales.map(s=>`<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
+    document.getElementById('cFecha').value = new Date().toISOString().slice(0,10);
+  }
+}
+
+async function cargarHist(){
+  try {
+    const params = new URLSearchParams();
+    const sucId = document.getElementById('filtroSucursal').value;
+    const fecha = document.getElementById('filtroFecha').value;
+    if (sucId) params.set('id_sucursal', sucId);
+    if (fecha) params.set('fecha', fecha);
+    const data = await api('GET','/api/ventas?'+params.toString());
+    const total = data.reduce((s,v)=>s+parseFloat(v.precio||0),0);
+    const hoy = new Date().toISOString().slice(0,10);
+    const hoyData = data.filter(v=>(v.fecha_venta+'').slice(0,10)===hoy);
+    document.getElementById('kpis').innerHTML = `
+      <div class="card"><div class="clabel">Boletos${esCliente?'':' totales'}</div><div class="cval bv">${data.length}</div><div class="csub">en el periodo</div></div>
+      <div class="card"><div class="clabel">Ingresos${esCliente?' (mis compras)':''}</div><div class="cval gv">$${total.toLocaleString('es-MX',{maximumFractionDigits:0})}</div><div class="csub">MXN</div></div>
+      <div class="card"><div class="clabel">Hoy</div><div class="cval tv">${hoyData.length}</div><div class="csub">boletos</div></div>
+      <div class="card"><div class="clabel">Promedio boleto</div><div class="cval">$${data.length?Math.round(total/data.length):0}</div><div class="csub">MXN</div></div>`;
+    const tb = document.getElementById('tbody');
+    tb.innerHTML = '';
+    document.getElementById('empty').style.display = data.length ? 'none' : 'block';
+    document.getElementById('tbl').style.display = data.length ? '' : 'none';
+    data.forEach(v => {
+      const fv = new Date(v.fecha_venta);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="tdmono">${fv.toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'})}</td>
+        <td>${v.usuario}<br><span class="tdmono">${v.email}</span></td>
+        <td>${v.pelicula}</td>
+        <td class="tdmono">${v.sucursal} · ${v.sala}</td>
+        <td class="tdmono">${(v.fecha+'').slice(0,10)} ${(v.horario+'').slice(0,5)}</td>
+        <td class="tdmono">${v.fila}${v.numero}</td>
+        <td class="tdmono">$${parseFloat(v.precio).toFixed(2)}</td>`;
+      tb.appendChild(tr);
+    });
+    bindHoverAll();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+let funcionSel = null;
+let asientosSel = [];
+let asientosLista = [];
+let productos = [];
+let carritoProd = {};
+
+async function cargarFunciones(){
+  if (!esCliente) return;
+  const sucId = document.getElementById('cSuc').value;
+  const fecha = document.getElementById('cFecha').value;
+  const params = new URLSearchParams();
+  if (sucId) params.set('id_sucursal', sucId);
+  if (fecha) params.set('fecha', fecha);
+  try {
+    const data = await api('GET','/api/funciones?'+params.toString());
+    const cont = document.getElementById('fnPick');
+    cont.innerHTML = '';
+    if (!data.length) { cont.innerHTML = '<div class="empty">No hay funciones para este día y sucursal.</div>'; return; }
+    data.filter(f=>f.estado==='Activa').forEach(f => {
+      const c = document.createElement('div');
+      c.className = 'fncard';
+      c.innerHTML = `
+        <div class="fnct">${f.pelicula}</div>
+        <div class="fncm">${f.sucursal} · ${f.sala} (${f.sala_tipo||''})<br>
+          ${(f.fecha+'').slice(0,10)} · ${(f.horario+'').slice(0,5)} · ${f.duracion||''} · ${f.clasificacion||''}</div>
+        <div class="fncp">$${parseFloat(f.precio).toFixed(0)} general · $${parseFloat(f.precio_vip).toFixed(0)} VIP</div>`;
+      c.onclick = () => seleccionarFuncion(f, c);
+      cont.appendChild(c);
+    });
+    bindHoverAll();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function seleccionarFuncion(f, card){
+  document.querySelectorAll('.fncard').forEach(x=>x.classList.remove('on'));
+  card.classList.add('on');
+  funcionSel = f;
+  asientosSel = [];
+  carritoProd = {};
+  document.getElementById('funcInfo').textContent = f.pelicula+' · '+(f.fecha+'').slice(0,10)+' '+(f.horario+'').slice(0,5)+' · '+f.sucursal+' '+f.sala;
+  document.getElementById('secAsientos').style.display = '';
+  document.getElementById('secProductos').style.display = '';
+  document.getElementById('secResumen').style.display = '';
+  await cargarAsientos();
+  await cargarProductos();
+  actualizarResumen();
+  document.getElementById('secAsientos').scrollIntoView({behavior:'smooth'});
+}
+
+async function cargarAsientos(){
+  try {
+    asientosLista = await api('GET','/api/funciones/'+funcionSel.id_funcion+'/asientos');
+    const sg = document.getElementById('sgrid');
+    sg.innerHTML = '';
+    if (!asientosLista.length) {
+      sg.innerHTML = '<div class="empty">Esta sala no tiene asientos configurados todavía.</div>';
+      return;
+    }
+    const filas = {};
+    asientosLista.forEach(a=>{ (filas[a.fila]=filas[a.fila]||[]).push(a); });
+    Object.keys(filas).sort().forEach(f=>{
+      const row = document.createElement('div'); row.className = 'srow';
+      row.innerHTML = `<div class="srlabel">${f}</div>`;
+      filas[f].sort((a,b)=>a.numero-b.numero).forEach(a=>{
+        const sd = document.createElement('div');
+        sd.className = 'seat'+(a.tipo==='VIP'?' vip':'')+(a.ocupado?' occ':'');
+        sd.textContent = a.numero;
+        sd.dataset.id = a.id_asiento;
+        if (!a.ocupado) sd.onclick = () => toggleAsiento(a, sd);
+        row.appendChild(sd);
+      });
+      const lb2 = document.createElement('div'); lb2.className='srlabel';lb2.textContent=f;
+      row.appendChild(lb2);
+      sg.appendChild(row);
+    });
+    bindHoverAll();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+function toggleAsiento(a, el){
+  if (asientosSel.includes(a.id_asiento)) {
+    asientosSel = asientosSel.filter(x=>x!==a.id_asiento);
+    el.classList.remove('sel');
+  } else {
+    asientosSel.push(a.id_asiento);
+    el.classList.add('sel');
+  }
+  actualizarResumen();
+}
+
+async function cargarProductos(){
+  try {
+    productos = await api('GET','/api/productos');
+    const cont = document.getElementById('prodGrid');
+    cont.innerHTML = '';
+    productos.filter(p=>p.unidades>0).forEach(p=>{
+      const c = document.createElement('div'); c.className='prodc';
+      c.innerHTML = `
+        <div class="prodn">${p.nombre}</div>
+        <div class="prodp">$${parseFloat(p.precio).toFixed(2)}</div>
+        <div class="csub">Stock: ${p.unidades}</div>
+        <div class="prodq">
+          <button data-d="-1">−</button>
+          <input type="number" min="0" max="${p.unidades}" value="0" data-id="${p.id_producto}">
+          <button data-d="1">+</button>
+        </div>`;
+      const inp = c.querySelector('input');
+      c.querySelectorAll('button').forEach(b=>{
+        b.onclick = () => {
+          const v = Math.max(0, Math.min(p.unidades, (parseInt(inp.value)||0) + parseInt(b.dataset.d)));
+          inp.value = v;
+          if (v>0) carritoProd[p.id_producto] = v; else delete carritoProd[p.id_producto];
+          actualizarResumen();
+        };
+      });
+      inp.oninput = () => {
+        const v = Math.max(0, Math.min(p.unidades, parseInt(inp.value)||0));
+        inp.value = v;
+        if (v>0) carritoProd[p.id_producto] = v; else delete carritoProd[p.id_producto];
+        actualizarResumen();
+      };
+      cont.appendChild(c);
+    });
+    bindHoverAll();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+function actualizarResumen(){
+  let totalBoletos = 0;
+  asientosSel.forEach(id => {
+    const a = asientosLista.find(x=>x.id_asiento===id);
+    if (!a) return;
+    totalBoletos += a.tipo==='VIP' ? parseFloat(funcionSel.precio_vip) : parseFloat(funcionSel.precio);
+  });
+  let totalProd = 0;
+  Object.entries(carritoProd).forEach(([pid,cant]) => {
+    const p = productos.find(x=>x.id_producto==pid);
+    if (p) totalProd += parseFloat(p.precio)*cant;
+  });
+  const total = totalBoletos + totalProd;
+  document.getElementById('scnt').innerHTML = asientosSel.length+'<span>boleto'+(asientosSel.length!==1?'s':'')+'</span>';
+  const partes = [];
+  if (asientosSel.length) {
+    const labels = asientosSel.map(id=>{const a=asientosLista.find(x=>x.id_asiento===id);return a?a.fila+a.numero:'';}).join(', ');
+    partes.push('Asientos: '+labels+' — $'+totalBoletos.toFixed(2));
+  }
+  Object.entries(carritoProd).forEach(([pid,cant]) => {
+    const p = productos.find(x=>x.id_producto==pid);
+    if (p) partes.push(p.nombre+' × '+cant+' — $'+(p.precio*cant).toFixed(2));
+  });
+  document.getElementById('resDetalle').innerHTML = partes.join('<br>') || '<em>Selecciona asientos para iniciar</em>';
+  document.getElementById('stotal').innerHTML = 'Total: <strong>$'+total.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})+'</strong>';
+}
+
+async function confirmarCompra(){
+  if (!asientosSel.length) { toast('Selecciona al menos un asiento','err'); return; }
+  const productosArr = Object.entries(carritoProd).map(([id,cant])=>({id_producto:parseInt(id),cantidad:cant}));
+  try {
+    await api('POST','/api/ventas', {
+      id_funcion: funcionSel.id_funcion,
+      asientos: asientosSel,
+      productos: productosArr
+    });
+    toast('¡Compra realizada con éxito!');
+    asientosSel = []; carritoProd = {}; funcionSel = null;
+    document.getElementById('secAsientos').style.display='none';
+    document.getElementById('secProductos').style.display='none';
+    document.getElementById('secResumen').style.display='none';
+    document.querySelectorAll('.fncard').forEach(x=>x.classList.remove('on'));
+    cargarHist();
+    cargarFunciones();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+(async()=>{ await cargarSucursales(); cargarHist(); if (esCliente) cargarFunciones(); })();
+</script>
+</body>
+</html>

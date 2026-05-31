@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>LUMIÈRE — Sucursales</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Bebas+Neue&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="phead">
+  <div class="plabel bc">Admin global · Cadena de cines</div>
+  <h1 class="ptitle">Sucursales</h1>
+  <p class="psub">Alta, edición y baja de sucursales de la cadena</p>
+</div>
+
+<section>
+  <div class="row" style="margin-bottom:22px">
+    <div class="stitle" style="margin-bottom:0">Cadena</div>
+    <div class="spacer"></div>
+    <button class="btn bb" onclick="abrirNueva()">+ Nueva sucursal</button>
+  </div>
+  <table id="tbl">
+    <thead><tr>
+      <th>Nombre</th><th>Dirección</th><th>Estado</th>
+      <th style="text-align:center">Salas</th>
+      <th style="text-align:center">Usuarios</th>
+      <th style="width:160px">Acciones</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="empty" class="empty" style="display:none">No hay sucursales registradas todavía.</div>
+</section>
+
+<footer><p>© 2026 Lumière Cine</p><p>Vista: Admin Global · Sucursales</p></footer>
+
+<div class="moverlay" id="msuc">
+  <div class="modal">
+    <div class="modaltitle" id="mtitle">Nueva sucursal</div>
+    <div class="frow f1"><div class="fg"><label>Nombre</label><input id="f_nombre" placeholder="Ej. Lumière Centro"></div></div>
+    <div class="frow f1"><div class="fg"><label>Dirección</label><input id="f_direccion" placeholder="Av. principal #123"></div></div>
+    <div class="frow f1">
+      <div class="fg"><label>Estado</label>
+        <select id="f_estado">
+          <option value="Activa">Activa</option>
+          <option value="Mantenimiento">Mantenimiento</option>
+          <option value="Inactiva">Inactiva</option>
+        </select>
+      </div>
+    </div>
+    <div class="macts">
+      <button class="btn bo" onclick="closeModal('msuc')">Cancelar</button>
+      <button class="btn bb" onclick="guardar()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+renderTopbar('sucursales');
+
+if (session.role !== 'ag') {
+  document.body.innerHTML = '<div class="empty" style="padding:120px">Esta sección requiere rol de Admin Global.</div>';
+}
+
+let editing = null;
+
+async function cargar(){
+  try {
+    const data = await api('GET','/api/sucursales');
+    const tb = document.getElementById('tbody');
+    tb.innerHTML = '';
+    document.getElementById('empty').style.display = data.length ? 'none' : 'block';
+    document.getElementById('tbl').style.display = data.length ? '' : 'none';
+    data.forEach(s => {
+      const cls = s.estado === 'Activa' ? 'bgn' : (s.estado === 'Mantenimiento' ? 'bam' : 'brd');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${s.nombre}</td>
+        <td class="tdmono">${s.direccion || '—'}</td>
+        <td><span class="badge ${cls}">${s.estado}</span></td>
+        <td class="tdmono" style="text-align:center">${s.salas}</td>
+        <td class="tdmono" style="text-align:center">${s.usuarios}</td>
+        <td><div class="acts">
+          <button class="btn bo bsm">Editar</button>
+          <button class="btn br bsm">Eliminar</button>
+        </div></td>`;
+      tr.querySelector('.bo').onclick = () => abrirEditar(s);
+      tr.querySelector('.br').onclick = () => eliminar(s);
+      tb.appendChild(tr);
+    });
+    bindHoverAll();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+function abrirNueva(){
+  editing = null;
+  document.getElementById('mtitle').textContent = 'Nueva sucursal';
+  document.getElementById('f_nombre').value = '';
+  document.getElementById('f_direccion').value = '';
+  document.getElementById('f_estado').value = 'Activa';
+  openModal('msuc');
+}
+
+function abrirEditar(s){
+  editing = s.id_sucursal;
+  document.getElementById('mtitle').textContent = 'Editar sucursal';
+  document.getElementById('f_nombre').value = s.nombre;
+  document.getElementById('f_direccion').value = s.direccion || '';
+  document.getElementById('f_estado').value = s.estado || 'Activa';
+  openModal('msuc');
+}
+
+async function guardar(){
+  const body = {
+    nombre: document.getElementById('f_nombre').value.trim(),
+    direccion: document.getElementById('f_direccion').value.trim(),
+    estado: document.getElementById('f_estado').value
+  };
+  if (!body.nombre) { toast('El nombre es obligatorio','err'); return; }
+  try {
+    if (editing) await api('PUT','/api/sucursales/'+editing, body);
+    else await api('POST','/api/sucursales', body);
+    closeModal('msuc');
+    toast(editing ? 'Sucursal actualizada' : 'Sucursal creada');
+    cargar();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function eliminar(s){
+  if (s.salas > 0 || s.usuarios > 0) {
+    toast(`No se puede: tiene ${s.salas} sala(s) y ${s.usuarios} usuario(s) asociados.`, 'err');
+    return;
+  }
+  if (!confirm('¿Eliminar la sucursal "'+s.nombre+'"?')) return;
+  try { await api('DELETE','/api/sucursales/'+s.id_sucursal); toast('Eliminada'); cargar(); }
+  catch(e){ toast(e.message,'err'); }
+}
+
+cargar();
+</script>
+</body>
+</html>

@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUMIÈRE — Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Bebas+Neue&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- "Ver como" pill (sólo admins) -->
+<div class="viewpill" id="viewpill" style="display:none;">
+  <div class="vp c"  id="vp-c"  onclick="sw('c')"><span class="vpdot"></span>Cliente</div>
+  <div class="vp ag" id="vp-ag" onclick="sw('ag')"><span class="vpdot"></span>Admin Global</div>
+  <div class="vp al" id="vp-al" onclick="sw('al')"><span class="vpdot"></span>Admin Local</div>
+</div>
+
+<!-- ═══ CLIENTE ═══ -->
+<div class="view" id="v-c">
+  <div class="hero" id="hero">
+    <div class="hposter"></div><div class="hbg"></div>
+    <div class="hkick">Estreno destacado</div>
+    <h1 class="htitle" id="heroTitle">Cargando…</h1>
+    <p class="hsub" id="heroSub">Tu experiencia cinematográfica</p>
+    <div class="hmeta" id="heroMeta"></div>
+    <div class="hacts">
+      <button class="btn bg" onclick="document.getElementById('cartelera').scrollIntoView({behavior:'smooth'})">Ver cartelera</button>
+      <button class="playbtn"><span class="playico"></span>Ver tráiler</button>
+    </div>
+  </div>
+
+  <div class="filmstrip"><div class="fsi">
+    <div class="fsi-item gc">★ Ahora en cartelera</div><div class="fsi-item">Sala Dolby Atmos</div>
+    <div class="fsi-item">IMAX disponible</div><div class="fsi-item gc">Nuevos estrenos cada viernes</div>
+    <div class="fsi-item">Sala 4DX · Butacas premium</div><div class="fsi-item">Estacionamiento gratuito</div>
+    <div class="fsi-item gc">★ Ahora en cartelera</div><div class="fsi-item">Sala Dolby Atmos</div>
+    <div class="fsi-item">IMAX disponible</div><div class="fsi-item gc">Nuevos estrenos cada viernes</div>
+    <div class="fsi-item">Sala 4DX · Butacas premium</div><div class="fsi-item">Estacionamiento gratuito</div>
+  </div></div>
+
+  <section id="cartelera">
+    <div class="stitle">Cartelera</div>
+    <div class="sucsel">
+      <label>Sucursal</label>
+      <select id="c_sucursal" onchange="cargarCarteleraCliente()"></select>
+      <label>Fecha</label>
+      <input id="c_fecha" type="date">
+    </div>
+    <div class="mgrid" id="grid-cartelera"><div class="empty">Cargando cartelera…</div></div>
+  </section>
+
+  <section class="fnsec">
+    <div class="stitle">Funciones disponibles</div>
+    <div id="rows-funciones-cliente"><div class="empty">Selecciona una sucursal y una fecha.</div></div>
+  </section>
+
+  <section id="asientos">
+    <div class="stitle">Selecciona tus asientos</div>
+    <div id="funcion-elegida" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:32px;">Selecciona una función para ver el mapa de asientos.</div>
+    <div class="scrarea"><div class="scrglow"></div><div class="scrline"></div><div class="scrlabel">Pantalla</div></div>
+    <div class="sgrid" id="sgrid"></div>
+    <div class="slegend">
+      <div class="sleg"><div class="sleg-dot"></div>Disponible</div>
+      <div class="sleg"><div class="sleg-dot sel"></div>Seleccionado</div>
+      <div class="sleg"><div class="sleg-dot occ"></div>Ocupado</div>
+      <div class="sleg"><div class="sleg-dot vip"></div>VIP</div>
+    </div>
+
+    <div class="stitle" style="margin-top:48px;">Dulcería (opcional)</div>
+    <div class="dulgrid" id="grid-dulceria"></div>
+
+    <div class="ssum">
+      <div class="ssumtitle">Resumen de compra</div>
+      <div class="scnt" id="scnt">0<span>boletos</span></div>
+      <div class="stotal" id="stotal">Total: <strong>$0.00</strong></div>
+      <button class="btn bg" style="width:100%" onclick="confirmarCompra()">Confirmar compra</button>
+    </div>
+
+    <div id="ticket-wrap" style="max-width:480px;margin:32px auto 0;"></div>
+  </section>
+  <footer><p>© 2026 Lumière Cine</p><p>Vista: Cliente · Ventas y tickets</p></footer>
+</div>
+
+<!-- ═══ ADMIN GLOBAL ═══ -->
+<div class="view" id="v-ag">
+  <div class="phead">
+    <div class="plabel bc">Admin global · Panel administrativo</div>
+    <h1 class="ptitle">Sucursales & Inventarios</h1>
+    <p class="psub">Control centralizado de todas las sucursales</p>
+  </div>
+
+  <section>
+    <div class="stitle">Resumen general</div>
+    <div class="cards c4" id="cards-resumen-ag">
+      <div class="card"><div class="clabel">Sucursales activas</div><div class="cval bv">…</div></div>
+      <div class="card"><div class="clabel">Boletos hoy</div><div class="cval">…</div></div>
+      <div class="card"><div class="clabel">Ingreso del día</div><div class="cval gv">…</div></div>
+      <div class="card"><div class="clabel">Alertas de stock</div><div class="cval rv">…</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="stitle">Sucursales</div>
+    <div class="cards c3" id="cards-sucursales"><div class="empty">Cargando…</div></div>
+  </section>
+
+  <section style="background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+    <div class="stitle">Control de inventarios</div>
+    <div style="border:1px solid var(--border);" id="rows-inventario">
+      <div class="skrow hdr"><span>Producto</span><span>Unidades</span><span>Stock</span><span>Mín.</span><span>Acción</span></div>
+      <div class="empty">Cargando inventario…</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="stitle">Usuarios del sistema</div>
+    <table>
+      <thead><tr><th>Nombre</th><th>Rol</th><th>Sucursal</th><th>Último acceso</th><th>Estado</th></tr></thead>
+      <tbody id="rows-usuarios"><tr><td colspan="5" class="empty">Cargando usuarios…</td></tr></tbody>
+    </table>
+  </section>
+  <footer><p>© 2026 Lumière Cine</p><p>Vista: Admin Global · Inventarios</p></footer>
+</div>
+
+<!-- ═══ ADMIN LOCAL ═══ -->
+<div class="view" id="v-al">
+  <div class="phead">
+    <div class="plabel tc" id="al-header">Admin local</div>
+    <h1 class="ptitle">Gestión de Cartelera</h1>
+    <p class="psub">Funciones, reportes y configuración de sala</p>
+  </div>
+
+  <section>
+    <div class="stitle">Reportes del día</div>
+    <div class="cards c4" id="cards-reportes-al">
+      <div class="rcard"><div class="rcardtitle">Boletos vendidos</div><div class="rval tv">…</div></div>
+      <div class="rcard"><div class="rcardtitle">Ingreso total</div><div class="rval gv">…</div></div>
+      <div class="rcard"><div class="rcardtitle">Funciones del día</div><div class="rval">…</div></div>
+      <div class="rcard"><div class="rcardtitle">Funciones canceladas</div><div class="rval">…</div></div>
+    </div>
+  </section>
+
+  <section style="background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+    <div class="row" style="margin-bottom:22px">
+      <div class="stitle" style="margin-bottom:0;flex:1;">Funciones programadas — hoy</div>
+      <button class="btn bt" onclick="abrirModalFuncion()">+ Nueva función</button>
+    </div>
+    <div style="border:1px solid var(--border);" id="rows-funciones-al">
+      <div class="fnrow hdr"><span>Película</span><span style="text-align:center;">Hora</span><span style="text-align:center;">Sala</span><span style="text-align:center;">Precio</span><span style="text-align:center;">VIP</span><span style="text-align:center;">Estado</span></div>
+      <div class="empty">Cargando funciones…</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="stitle">Estado de salas</div>
+    <div class="cards c4" id="cards-salas-al"><div class="empty">Cargando…</div></div>
+  </section>
+  <footer><p>© 2026 Lumière Cine</p><p>Vista: Admin Local · Gestión cartelera</p></footer>
+</div>
+
+<!-- MODAL nueva función -->
+<div class="moverlay" id="mnueva">
+  <div class="modal">
+    <div class="modaltitle">Nueva función</div>
+    <div class="frow">
+      <div class="fg"><label>Película</label><select id="mf_pelicula"></select></div>
+      <div class="fg"><label>Sala</label><select id="mf_sala"></select></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>Fecha</label><input type="date" id="mf_fecha"></div>
+      <div class="fg"><label>Hora de inicio</label><input type="time" id="mf_hora" value="18:00"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>Precio general (MXN)</label><input type="number" id="mf_precio" value="130"></div>
+      <div class="fg"><label>Precio VIP (MXN)</label><input type="number" id="mf_preciovip" value="180"></div>
+    </div>
+    <div class="macts">
+      <button class="btn bo" onclick="closeModal('mnueva')">Cancelar</button>
+      <button class="btn bt" onclick="guardarFuncion()">Guardar función</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+// ═══ HELPERS específicos del panel ═══
+function fmtMoney(n){ return '$' + Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function hoyISO(){ return new Date().toISOString().slice(0,10); }
+function fmtHora(t){
+  if (!t) return '';
+  if (typeof t === 'string') return t.slice(0,5);
+  const d = new Date(t);
+  return d.toISOString().slice(11,16);
+}
+function fmtFecha(s){
+  if (!s) return '';
+  if (typeof s === 'string') return s.slice(0,10);
+  return new Date(s).toISOString().slice(0,10);
+}
+
+// ═══ Topbar + viewpill ═══
+renderTopbar('panel');
+
+// Mostrar pill "ver como" sólo a admins (para probar otras vistas)
+const isAdmin = session.role === 'ag' || session.role === 'al';
+if (isAdmin) {
+  document.getElementById('viewpill').style.display = 'flex';
+  // El AG ve los tres; el AL sólo cliente y al; el cliente sólo cliente
+  if (session.role === 'al') document.getElementById('vp-ag').style.display = 'none';
+}
+
+// ═══ View switch ═══
+function sw(r){
+  // Reglas de acceso
+  const access = { c:['c'], ag:['c','ag','al'], al:['c','al'] };
+  if (!(access[session.role]||['c']).includes(r)) return;
+
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  document.querySelectorAll('.viewpill .vp').forEach(t=>t.classList.remove('on'));
+  document.getElementById('v-'+r).classList.add('on');
+  const pill = document.getElementById('vp-'+r);
+  if (pill) pill.classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if (r === 'c')  cargarCliente();
+  if (r === 'ag') cargarAdminGlobal();
+  if (r === 'al') cargarAdminLocal();
+}
+
+// ═══ Header AL con sucursal ═══
+if (session.role === 'al' && session.sucursal) {
+  document.getElementById('al-header').textContent = 'Admin local · ' + session.sucursal;
+}
+
+// ═══ Init: arrancar en la vista del rol ═══
+fetch('/api/session').then(r=>{
+  if(!r.ok){ localStorage.removeItem('lumiere_session'); window.location.href='login.html'; return; }
+  document.getElementById('c_fecha').value = hoyISO();
+  sw(session.role);
+}).catch(()=>{});
+
+// ════════════════════════════════════════════════════════════
+// VISTA CLIENTE
+// ════════════════════════════════════════════════════════════
+let sucursales = [];
+let peliculas  = [];
+let funcionesCliente = [];
+let funcionElegida = null;
+let asientosFun = [];
+let seleccion = [];
+let productosCat = [];
+let carrito = {};
+
+async function cargarCliente(){
+  if (sucursales.length === 0) {
+    sucursales = await api('GET','/api/sucursales');
+    const sel = document.getElementById('c_sucursal');
+    sel.innerHTML = sucursales.filter(s=>s.estado==='Activa')
+      .map(s=>`<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
+    bindHoverAll();
+  }
+  if (productosCat.length === 0) {
+    productosCat = await api('GET','/api/productos');
+    renderDulceria();
+  }
+  document.getElementById('c_fecha').onchange = cargarCarteleraCliente;
+  await cargarCarteleraCliente();
+}
+
+async function cargarCarteleraCliente(){
+  const id_sucursal = document.getElementById('c_sucursal').value;
+  const fecha = document.getElementById('c_fecha').value || hoyISO();
+  if (!id_sucursal) return;
+
+  funcionesCliente = await api('GET',`/api/funciones?id_sucursal=${id_sucursal}&fecha=${fecha}`);
+  const peliMap = {};
+  funcionesCliente.forEach(f=>{
+    if (!peliMap[f.id_pelicula]) peliMap[f.id_pelicula] = {
+      id_pelicula:f.id_pelicula, nombre:f.pelicula, duracion:f.duracion, clasificacion:f.clasificacion
+    };
+  });
+  peliculas = Object.values(peliMap);
+
+  renderHero();
+  renderCartelera();
+  renderFuncionesCliente();
+}
+
+function renderHero(){
+  const t = document.getElementById('heroTitle');
+  const s = document.getElementById('heroSub');
+  const m = document.getElementById('heroMeta');
+  if (peliculas.length === 0) {
+    t.textContent = 'Sin estrenos hoy';
+    s.textContent = 'Selecciona otra fecha o sucursal';
+    m.innerHTML = '';
+    return;
+  }
+  const p = peliculas[0];
+  t.textContent = p.nombre;
+  s.textContent = `Hoy en cartelera · ${peliculas.length} título${peliculas.length!==1?'s':''} disponibles`;
+  m.innerHTML = `
+    <div class="mi"><span class="ml">Duración</span><span class="mv">${p.duracion||'—'}</span></div>
+    <div class="mi"><span class="ml">Clasificación</span><span class="mv">${p.clasificacion||'—'}</span></div>
+    <div class="mi"><span class="ml">Funciones hoy</span><span class="mv">${funcionesCliente.filter(f=>f.id_pelicula===p.id_pelicula).length}</span></div>
+  `;
+}
+
+function renderCartelera(){
+  const grid = document.getElementById('grid-cartelera');
+  if (peliculas.length === 0) { grid.innerHTML = '<div class="empty">Sin películas en esta sucursal y fecha.</div>'; return; }
+  grid.innerHTML = peliculas.map((p,i)=>`
+    <div class="mc col${(i%4)+1}">
+      <div class="mcbg"></div><div class="mov"></div>
+      <div class="minfo">
+        <div class="mgenre">${p.clasificacion||'—'}</div>
+        <div class="mtitle">${p.nombre}</div>
+        <div class="mmeta"><span class="mdur">${p.duracion||''}</span></div>
+      </div>
+      <div class="mhov"><button class="mbuy" onclick="document.getElementById('rows-funciones-cliente').scrollIntoView({behavior:'smooth'})">Ver funciones</button></div>
+    </div>
+  `).join('');
+  bindHoverAll();
+}
+
+function renderFuncionesCliente(){
+  const cont = document.getElementById('rows-funciones-cliente');
+  if (funcionesCliente.length === 0) { cont.innerHTML = '<div class="empty">Sin funciones programadas.</div>'; return; }
+
+  const porPeli = {};
+  funcionesCliente.forEach(f=>{
+    if (!porPeli[f.id_pelicula]) porPeli[f.id_pelicula] = { pelicula:f.pelicula, duracion:f.duracion, clasif:f.clasificacion, funciones:[] };
+    porPeli[f.id_pelicula].funciones.push(f);
+  });
+  cont.innerHTML = Object.values(porPeli).map(p=>`
+    <div class="strow">
+      <div><div class="stmov">${p.pelicula}</div><div class="stsub">${p.clasif||'—'} · ${p.duracion||''}</div></div>
+      <div class="slots">
+        ${p.funciones.map(f=>`<div class="slot${funcionElegida && funcionElegida.id_funcion===f.id_funcion?' sel':''}" onclick="elegirFuncion(${f.id_funcion})">${fmtHora(f.horario)} · ${f.sala}</div>`).join('')}
+      </div>
+      <div class="sthall">${p.funciones[0].sala_tipo||''}</div>
+    </div>
+  `).join('');
+  bindHoverAll();
+}
+
+async function elegirFuncion(id_funcion){
+  funcionElegida = funcionesCliente.find(f=>f.id_funcion===id_funcion);
+  if (!funcionElegida) return;
+  document.getElementById('funcion-elegida').textContent =
+    `${funcionElegida.pelicula} — ${fmtHora(funcionElegida.horario)} · ${funcionElegida.sala} ${funcionElegida.sala_tipo||''} · ${funcionElegida.sucursal}`;
+  asientosFun = await api('GET',`/api/funciones/${id_funcion}/asientos`);
+  seleccion = [];
+  renderAsientos();
+  renderFuncionesCliente();
+  document.getElementById('asientos').scrollIntoView({behavior:'smooth'});
+}
+
+function renderAsientos(){
+  const grid = document.getElementById('sgrid');
+  if (asientosFun.length === 0) { grid.innerHTML = '<div class="empty">Sala sin asientos configurados.</div>'; return; }
+  const filas = {};
+  asientosFun.forEach(a=>{ (filas[a.fila] = filas[a.fila] || []).push(a); });
+  const ordenadas = Object.keys(filas).sort();
+  grid.innerHTML = ordenadas.map(fila=>{
+    const lista = filas[fila].sort((a,b)=>a.numero-b.numero);
+    return `<div class="srow">
+      <div class="srlabel">${fila}</div>
+      ${lista.map(s=>`<div class="seat${s.tipo==='VIP'?' vip':''}${s.ocupado?' occ':''}" data-id="${s.id_asiento}" data-tipo="${s.tipo}" onclick="toggleSeat(${s.id_asiento})"></div>`).join('')}
+    </div>`;
+  }).join('');
+  bindHoverAll();
+  recalcTotal();
+}
+
+function toggleSeat(id){
+  const a = asientosFun.find(x=>x.id_asiento===id);
+  if (!a || a.ocupado) return;
+  const el = document.querySelector(`.seat[data-id="${id}"]`);
+  const i = seleccion.indexOf(id);
+  if (i>=0) { seleccion.splice(i,1); el.classList.remove('sel'); }
+  else { seleccion.push(id); el.classList.add('sel'); }
+  recalcTotal();
+}
+
+function recalcTotal(){
+  let total = 0;
+  seleccion.forEach(id=>{
+    const a = asientosFun.find(x=>x.id_asiento===id);
+    if (!a || !funcionElegida) return;
+    total += Number(a.tipo === 'VIP' ? funcionElegida.precio_vip : funcionElegida.precio);
+  });
+  Object.entries(carrito).forEach(([idp, q])=>{
+    const p = productosCat.find(x=>x.id_producto===Number(idp));
+    if (p) total += Number(p.precio) * q;
+  });
+  document.getElementById('scnt').innerHTML = seleccion.length + '<span>boleto'+(seleccion.length!==1?'s':'')+'</span>';
+  document.getElementById('stotal').innerHTML = 'Total: <strong>' + fmtMoney(total) + '</strong>';
+}
+
+function renderDulceria(){
+  const grid = document.getElementById('grid-dulceria');
+  if (productosCat.length === 0) { grid.innerHTML = '<div class="empty">Sin productos disponibles.</div>'; return; }
+  grid.innerHTML = productosCat.filter(p=>p.unidades>0).map(p=>`
+    <div class="dulc">
+      <div class="dulc-name">${p.nombre}</div>
+      <div class="dulc-price">${fmtMoney(p.precio)}</div>
+      <div class="dulc-ctrls">
+        <button class="dulc-btn" onclick="addCarrito(${p.id_producto},-1)">−</button>
+        <span class="dulc-q" id="q-${p.id_producto}">0</span>
+        <button class="dulc-btn" onclick="addCarrito(${p.id_producto},1)">+</button>
+      </div>
+    </div>
+  `).join('');
+  bindHoverAll();
+}
+
+function addCarrito(id, delta){
+  const p = productosCat.find(x=>x.id_producto===id);
+  if (!p) return;
+  const q = (carrito[id] || 0) + delta;
+  if (q < 0) return;
+  if (q > p.unidades) { toast('Stock insuficiente', 'err'); return; }
+  if (q === 0) delete carrito[id]; else carrito[id] = q;
+  document.getElementById('q-'+id).textContent = q;
+  recalcTotal();
+}
+
+async function confirmarCompra(){
+  if (!funcionElegida) { toast('Elige una función primero', 'err'); return; }
+  if (seleccion.length === 0) { toast('Selecciona al menos un asiento', 'err'); return; }
+  const productos = Object.entries(carrito).map(([id,q])=>({id_producto:Number(id), cantidad:q}));
+  try {
+    const r = await api('POST','/api/ventas', { id_funcion: funcionElegida.id_funcion, asientos: seleccion, productos });
+    mostrarTicket(r);
+    toast('Compra confirmada · ' + r.ventas.length + ' boleto(s)');
+    seleccion = []; carrito = {};
+    asientosFun = await api('GET',`/api/funciones/${funcionElegida.id_funcion}/asientos`);
+    productosCat = await api('GET','/api/productos');
+    renderAsientos();
+    renderDulceria();
+  } catch (e) {
+    toast(e.message, 'err');
+  }
+}
+
+function mostrarTicket(r){
+  const f = funcionElegida;
+  const detalleAsientos = seleccion.map(id=>{
+    const a = asientosFun.find(x=>x.id_asiento===id);
+    return a ? `${a.fila}${a.numero}${a.tipo==='VIP'?' (VIP)':''}` : '';
+  }).join(', ');
+  let total = 0;
+  seleccion.forEach(id=>{
+    const a = asientosFun.find(x=>x.id_asiento===id);
+    if (a) total += Number(a.tipo==='VIP'?f.precio_vip:f.precio);
+  });
+  let dulceriaHtml = '';
+  Object.entries(carrito).forEach(([idp,q])=>{
+    const p = productosCat.find(x=>x.id_producto===Number(idp));
+    if (p) {
+      total += Number(p.precio) * q;
+      dulceriaHtml += `<div class="trow"><span>${q} × ${p.nombre}</span><span>${fmtMoney(p.precio*q)}</span></div>`;
+    }
+  });
+  document.getElementById('ticket-wrap').innerHTML = `
+    <div class="ticket">
+      <h3>★ Comprobante digital</h3>
+      <div class="trow"><span>Folio</span><span>#${r.ventas[0]}</span></div>
+      <div class="trow"><span>Película</span><span>${f.pelicula}</span></div>
+      <div class="trow"><span>Sucursal</span><span>${f.sucursal}</span></div>
+      <div class="trow"><span>Sala</span><span>${f.sala} ${f.sala_tipo||''}</span></div>
+      <div class="trow"><span>Fecha · Hora</span><span>${fmtFecha(f.fecha)} · ${fmtHora(f.horario)}</span></div>
+      <div class="trow"><span>Asientos</span><span>${detalleAsientos}</span></div>
+      ${dulceriaHtml}
+      <div class="trow" style="margin-top:10px;font-size:14px;color:var(--gold);"><span><strong>TOTAL</strong></span><span><strong>${fmtMoney(total)}</strong></span></div>
+    </div>`;
+  document.getElementById('ticket-wrap').scrollIntoView({behavior:'smooth'});
+}
+
+// ════════════════════════════════════════════════════════════
+// VISTA ADMIN GLOBAL
+// ════════════════════════════════════════════════════════════
+async function cargarAdminGlobal(){
+  if (session.role !== 'ag') return;
+  try {
+    const [resumen, sucsResumen, productos, usuarios] = await Promise.all([
+      api('GET','/api/reportes/global'),
+      api('GET','/api/sucursales/resumen'),
+      api('GET','/api/productos'),
+      api('GET','/api/usuarios')
+    ]);
+
+    document.getElementById('cards-resumen-ag').innerHTML = `
+      <div class="card"><div class="clabel">Sucursales activas</div><div class="cval bv">${resumen.sucursales_activas}</div><div class="csub">de ${resumen.sucursales_total} totales</div></div>
+      <div class="card"><div class="clabel">Boletos vendidos hoy</div><div class="cval">${resumen.boletos_hoy}</div><div class="csub">cadena completa</div></div>
+      <div class="card"><div class="clabel">Ingreso del día</div><div class="cval gv">${fmtMoney(resumen.ingreso_hoy)}</div><div class="csub">MXN · todas las sucursales</div></div>
+      <div class="card"><div class="clabel">Alertas de stock</div><div class="cval rv">${resumen.alertas_stock}</div><div class="csub">productos bajo mínimo</div></div>
+    `;
+
+    document.getElementById('cards-sucursales').innerHTML = sucsResumen.map(s=>{
+      const badgeCls = s.estado==='Activa'?'bgn':(s.estado==='Mantenimiento'?'bam':'brd');
+      const ocup = s.capacidad>0 ? Math.round((s.boletos_hoy / s.capacidad) * 100) : 0;
+      return `<div class="scrd">
+        <div class="scrdhd"><div class="scrdname">${s.nombre}</div><span class="badge ${badgeCls}">${s.estado}</span></div>
+        <div class="scrdbody">
+          <div class="scrdstat"><span class="scrdlbl">Salas</span><span class="scrdval">${s.salas}</span></div>
+          <div class="scrdstat"><span class="scrdlbl">Capacidad</span><span class="scrdval">${s.capacidad} asientos</span></div>
+          <div class="scrdstat"><span class="scrdlbl">Funciones hoy</span><span class="scrdval">${s.funciones_hoy}</span></div>
+          <div class="scrdstat"><span class="scrdlbl">Boletos hoy</span><span class="scrdval" style="color:#5dcaa5;">${s.boletos_hoy} (${ocup}%)</span></div>
+        </div>
+      </div>`;
+    }).join('') || '<div class="empty">Sin sucursales registradas.</div>';
+
+    const inv = document.getElementById('rows-inventario');
+    inv.innerHTML = `<div class="skrow hdr"><span>Producto</span><span>Unidades</span><span>Stock</span><span>Mín.</span><span>Acción</span></div>` +
+      productos.map(p=>{
+        const ratio = p.minimo>0 ? p.unidades / p.minimo : (p.unidades>0?2:0);
+        let estado = 'Óptimo', cls='bgn', barCls='#0f6e56', pct = Math.min(100, (p.unidades / Math.max(p.minimo,1)) * 50);
+        if (ratio < 1) { estado='Crítico'; cls='brd'; barCls='var(--red)'; pct = (p.unidades/Math.max(p.minimo,1))*50; }
+        else if (ratio < 2) { estado='Bajo'; cls='bam'; barCls='var(--gold-dim)'; }
+        return `<div class="skrow">
+          <div class="skname">${p.nombre}<small>${p.sku||'—'}</small></div>
+          <div class="sknum">${p.unidades.toLocaleString('es-MX')}</div>
+          <div>
+            <div style="margin-bottom:4px;"><span class="badge ${cls}">${estado}</span></div>
+            <div class="skbarw"><div class="skbar" style="width:${Math.min(100,pct)}%;background:${barCls};"></div></div>
+          </div>
+          <div class="sknum">${p.minimo}</div>
+          <div><button class="btn ${cls==='brd'?'br':(cls==='bam'?'bg':'bo')} bsm" onclick="reabastecer(${p.id_producto})">Reabastecer</button></div>
+        </div>`;
+      }).join('');
+    bindHoverAll();
+
+    const tbody = document.getElementById('rows-usuarios');
+    const rolBadge = { c:['Cliente','bgn'], ag:['Admin Global','bbl'], al:['Admin Local','btl'] };
+    tbody.innerHTML = usuarios.map(u=>{
+      const [rol, cls] = rolBadge[u.rol] || ['—','bgn'];
+      const estCls = u.estado==='Activo'?'bgn':'bam';
+      const acc = u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'}) : '—';
+      return `<tr>
+        <td>${u.nombre}<div class="csub">${u.email}</div></td>
+        <td><span class="badge ${cls}">${rol}</span></td>
+        <td class="tdmono">${u.sucursal||'—'}</td>
+        <td class="tdmono">${acc}</td>
+        <td><span class="badge ${estCls}">${u.estado}</span></td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="5" class="empty">Sin usuarios.</td></tr>';
+
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function reabastecer(id){
+  const cant = prompt('¿Cuántas unidades agregar?','100');
+  if (!cant) return;
+  try {
+    await api('POST',`/api/productos/${id}/stock`, { delta: Number(cant) });
+    toast('Stock actualizado');
+    cargarAdminGlobal();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ════════════════════════════════════════════════════════════
+// VISTA ADMIN LOCAL
+// ════════════════════════════════════════════════════════════
+let alSucursalId = null;
+let peliculasAL = [];
+let salasAL = [];
+
+async function cargarAdminLocal(){
+  if (session.role !== 'al' && session.role !== 'ag') return;
+
+  if (!alSucursalId) {
+    const sucs = await api('GET','/api/sucursales');
+    if (session.role === 'al' && session.sucursal) {
+      const m = sucs.find(s=>s.nombre === session.sucursal);
+      alSucursalId = m ? m.id_sucursal : (sucs[0] && sucs[0].id_sucursal);
+    } else {
+      alSucursalId = sucs[0] && sucs[0].id_sucursal;
+    }
+    document.getElementById('al-header').textContent = 'Admin local · ' + (session.sucursal || (sucs.find(s=>s.id_sucursal===alSucursalId)||{}).nombre || '—');
+  }
+
+  try {
+    const fecha = hoyISO();
+    const [reportes, funciones, salas] = await Promise.all([
+      api('GET',`/api/reportes/sucursal/${alSucursalId}`),
+      api('GET',`/api/funciones?id_sucursal=${alSucursalId}&fecha=${fecha}`),
+      api('GET',`/api/salas?id_sucursal=${alSucursalId}`)
+    ]);
+
+    document.getElementById('cards-reportes-al').innerHTML = `
+      <div class="rcard"><div class="rcardtitle">Boletos vendidos</div><div class="rval tv">${reportes.boletos_hoy}</div><div class="rchg up">Hoy</div></div>
+      <div class="rcard"><div class="rcardtitle">Ingreso total</div><div class="rval gv">${fmtMoney(reportes.ingreso_hoy)}</div><div class="rchg up">MXN</div></div>
+      <div class="rcard"><div class="rcardtitle">Funciones del día</div><div class="rval">${reportes.funciones_hoy}</div><div class="rchg" style="color:var(--muted)">programadas</div></div>
+      <div class="rcard"><div class="rcardtitle">Funciones canceladas</div><div class="rval" style="color:${reportes.funciones_canceladas>0?'var(--red)':'var(--muted)'};">${reportes.funciones_canceladas}</div><div class="rchg" style="color:var(--muted)">${reportes.funciones_canceladas>0?'incidencias':'sin incidencias'}</div></div>
+    `;
+
+    const fnCont = document.getElementById('rows-funciones-al');
+    fnCont.innerHTML = `<div class="fnrow hdr"><span>Película</span><span style="text-align:center;">Hora</span><span style="text-align:center;">Sala</span><span style="text-align:center;">Precio</span><span style="text-align:center;">VIP</span><span style="text-align:center;">Estado</span></div>` +
+      (funciones.length === 0 ? '<div class="empty">Sin funciones programadas hoy.</div>' :
+        funciones.map(f=>{
+          const estCls = f.estado==='Activa'?'bgn':(f.estado==='Cancelada'?'brd':'bam');
+          return `<div class="fnrow">
+            <div class="fntitle">${f.pelicula}<small>${f.duracion||''} · ${f.clasificacion||'—'}</small></div>
+            <div class="fncol">${fmtHora(f.horario)}</div>
+            <div class="fncol">${f.sala} ${f.sala_tipo||''}</div>
+            <div class="fncol">${fmtMoney(f.precio)}</div>
+            <div class="fncol">${fmtMoney(f.precio_vip)}</div>
+            <div class="fncol"><span class="badge ${estCls}">${f.estado||'Activa'}</span></div>
+          </div>`;
+        }).join(''));
+    bindHoverAll();
+
+    const salasCont = document.getElementById('cards-salas-al');
+    salasCont.innerHTML = salas.length === 0 ? '<div class="empty">Sin salas en esta sucursal.</div>' :
+      salas.map(s=>{
+        const fnSala = funciones.filter(f=>f.id_sala===s.id_sala);
+        const proxima = fnSala[0];
+        return `<div class="card" style="border-color:var(--teal);">
+          <div class="clabel">${s.nombre}</div>
+          <div class="cval tv" style="font-size:22px;">${s.tipo||'—'}</div>
+          <div style="margin:10px 0 6px;"><span class="badge ${proxima?'bgn':'bbl'}">${proxima?'Programada':'Disponible'}</span></div>
+          <div class="csub">${proxima ? proxima.pelicula+'<br>'+fmtHora(proxima.horario) : 'Sin función asignada'}</div>
+        </div>`;
+      }).join('');
+    bindHoverAll();
+
+    peliculasAL = await api('GET','/api/peliculas');
+    salasAL = salas;
+
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+function abrirModalFuncion(){
+  if (!alSucursalId) { toast('Sucursal no determinada','err'); return; }
+  document.getElementById('mf_pelicula').innerHTML = peliculasAL.map(p=>`<option value="${p.id_pelicula}">${p.nombre}</option>`).join('');
+  document.getElementById('mf_sala').innerHTML = salasAL.map(s=>`<option value="${s.id_sala}">${s.nombre} · ${s.tipo||''}</option>`).join('');
+  document.getElementById('mf_fecha').value = hoyISO();
+  openModal('mnueva');
+}
+
+async function guardarFuncion(){
+  try {
+    await api('POST','/api/funciones', {
+      id_pelicula: Number(document.getElementById('mf_pelicula').value),
+      id_sala:     Number(document.getElementById('mf_sala').value),
+      fecha:       document.getElementById('mf_fecha').value,
+      horario:     document.getElementById('mf_hora').value,
+      precio:      Number(document.getElementById('mf_precio').value),
+      precio_vip:  Number(document.getElementById('mf_preciovip').value)
+    });
+    toast('Función creada');
+    closeModal('mnueva');
+    cargarAdminLocal();
+  } catch (e) { toast(e.message, 'err'); }
+}
+</script>
+</body>
+</html>

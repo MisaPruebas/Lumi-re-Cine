@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUMIÈRE — Acceso al Sistema</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Bebas+Neue&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080808;--surface:#0f0f0f;--card:#131313;
+    --gold:#c9a84c;--gold-dim:#7a6230;--red:#e63946;
+    --blue:#185fa5;--teal:#0f6e56;--purple:#534ab7;
+    --white:#f0ece4;--muted:#5a5550;--border:#1e1e1e;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html{height:100%;}
+  body{background:var(--bg);color:var(--white);font-family:'Cormorant Garamond',serif;overflow:hidden;cursor:none;height:100%;display:flex;flex-direction:column;}
+
+  /* CURSOR */
+  .cursor{position:fixed;width:12px;height:12px;background:var(--gold);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .3s,height .3s;mix-blend-mode:difference;}
+  .cursor-ring{position:fixed;width:36px;height:36px;border:1px solid var(--gold);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);opacity:.5;transition:width .3s,height .3s;}
+  .cursor.h{width:24px;height:24px;}.cursor-ring.h{width:56px;height:56px;opacity:.2;}
+
+  /* NOISE */
+  body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9000;opacity:.4;}
+
+  /* LAYOUT */
+  .login-wrap{display:grid;grid-template-columns:1fr 480px;height:100vh;}
+
+  /* LEFT — CINEMATIC PANEL */
+  .cin-panel{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:56px 52px;}
+  .cin-bg{position:absolute;inset:0;background:
+    radial-gradient(ellipse at 60% 30%, rgba(201,168,76,.07) 0%, transparent 55%),
+    radial-gradient(ellipse at 20% 80%, rgba(24,95,165,.06) 0%, transparent 50%),
+    linear-gradient(135deg, #080808 0%, #0d0b06 50%, #06080d 100%);}
+  .cin-grid{position:absolute;inset:0;
+    background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+    background-size:60px 60px;opacity:.3;}
+  .cin-vline{position:absolute;top:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,rgba(201,168,76,.15) 30%,rgba(201,168,76,.15) 70%,transparent);}
+  .cin-vline:nth-child(3){left:33.33%;}
+  .cin-vline:nth-child(4){left:66.66%;}
+  .cin-glow{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.04) 0%,transparent 70%);top:10%;left:40%;animation:breathe 8s ease-in-out infinite;}
+  @keyframes breathe{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+
+  .filmstrip-v{position:absolute;top:0;bottom:0;left:28px;width:18px;display:flex;flex-direction:column;gap:0;}
+  .fs-hole{width:18px;height:14px;border:1px solid rgba(201,168,76,.12);border-radius:2px;flex-shrink:0;}
+  .fs-hole:nth-child(even){background:rgba(201,168,76,.03);}
+
+  .now-badge{position:absolute;top:48px;left:52px;display:flex;align-items:center;gap:10px;opacity:0;animation:fadein .8s .3s forwards;}
+  @keyframes fadein{to{opacity:1}}
+  .nbdot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.4)}50%{box-shadow:0 0 0 6px rgba(201,168,76,0)}}
+  .nbtxt{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);}
+
+  .feat-tiles{position:absolute;right:52px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;}
+  .feat-tile{border:1px solid var(--border);padding:14px 16px;width:180px;opacity:0;animation:slidein .5s forwards;}
+  .feat-tile:nth-child(1){animation-delay:.5s}
+  .feat-tile:nth-child(2){animation-delay:.65s}
+  .feat-tile:nth-child(3){animation-delay:.8s}
+  @keyframes slidein{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+  .ft-label{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+  .ft-val{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;}
+  .ft-val.gv{color:var(--gold);}.ft-val.bv{color:#85b7eb;}.ft-val.tv{color:#5dcaa5;}
+  .ft-sub{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:2px;}
+
+  .cin-copy{position:relative;z-index:2;opacity:0;animation:fadein .8s .1s forwards;}
+  .cin-eyebrow{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--gold-dim);margin-bottom:14px;display:flex;align-items:center;gap:12px;}
+  .cin-eyebrow::before{content:'';display:inline-block;width:28px;height:1px;background:var(--gold-dim);}
+  .cin-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(52px,6vw,88px);line-height:.9;letter-spacing:3px;margin-bottom:18px;}
+  .cin-title em{display:block;font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(20px,2.5vw,34px);color:var(--muted);font-weight:300;letter-spacing:2px;margin-top:6px;}
+  .cin-desc{font-size:15px;font-weight:300;color:var(--muted);max-width:380px;line-height:1.7;margin-bottom:28px;}
+  .cin-divider{width:60px;height:1px;background:linear-gradient(to right,var(--gold),transparent);margin-bottom:24px;}
+  .cin-roles{display:flex;gap:20px;}
+  .cin-role{display:flex;align-items:center;gap:8px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .crole-dot{width:6px;height:6px;border-radius:50%;}
+  .crole-dot.g{background:var(--gold);}.crole-dot.b{background:var(--blue);}.crole-dot.t{background:var(--teal);}
+
+  /* RIGHT — FORM PANEL */
+  .form-panel{background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;position:relative;overflow-x:hidden;}
+  .form-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(to right,transparent,var(--gold),transparent);opacity:.5;z-index:1;}
+
+  .form-topbar{padding:28px 48px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .form-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:5px;color:var(--white);}
+  .form-logo span{color:var(--gold);}
+  .form-back{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);cursor:none;border:none;background:none;display:flex;align-items:center;gap:7px;transition:color .25s;padding:0;}
+  .form-back:hover{color:var(--white);}
+  .form-back::before{content:'←';font-size:12px;}
+
+  .form-body{flex:1;display:flex;flex-direction:column;padding:32px 48px;overflow-y:auto;}
+
+  .form-eyebrow{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:10px;opacity:0;animation:fadein .6s .2s forwards;}
+  .form-title{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:3px;margin-bottom:4px;opacity:0;animation:fadein .6s .3s forwards;}
+  .form-subtitle{font-size:13px;font-weight:300;font-style:italic;color:var(--muted);margin-bottom:20px;opacity:0;animation:fadein .6s .4s forwards;}
+
+  /* Mode tabs */
+  .mode-tabs{display:flex;gap:0;margin-bottom:20px;border:1px solid var(--border);opacity:0;animation:fadein .6s .35s forwards;}
+  .mode-tab{flex:1;padding:10px;text-align:center;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);cursor:none;transition:all .25s;background:transparent;border:none;}
+  .mode-tab:first-child{border-right:1px solid var(--border);}
+  .mode-tab:hover{color:var(--white);}
+  .mode-tab.on{background:rgba(201,168,76,.06);color:var(--gold);}
+
+  /* Role selector */
+  .role-sel{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:18px;opacity:0;animation:fadein .6s .45s forwards;}
+  .ropt{border:1px solid var(--border);padding:10px 8px;cursor:none;transition:all .25s;position:relative;overflow:hidden;}
+  .ropt::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;}
+  .ropt.ac::after{background:rgba(201,168,76,.06);}
+  .ropt.ag::after{background:rgba(24,95,165,.06);}
+  .ropt.al::after{background:rgba(15,110,86,.06);}
+  .ropt:hover::after{opacity:1;}
+  .ropt.sel-ac{border-color:var(--gold);}
+  .ropt.sel-ag{border-color:var(--blue);}
+  .ropt.sel-al{border-color:var(--teal);}
+  .ropt-dot{width:6px;height:6px;border-radius:50%;margin-bottom:7px;}
+  .ropt.ac .ropt-dot{background:var(--gold);}
+  .ropt.ag .ropt-dot{background:var(--blue);}
+  .ropt.al .ropt-dot{background:var(--teal);}
+  .ropt-name{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;display:block;margin-bottom:1px;}
+  .ropt.ac .ropt-name{color:var(--gold);}
+  .ropt.ag .ropt-name{color:#85b7eb;}
+  .ropt.al .ropt-name{color:#5dcaa5;}
+  .ropt-desc{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;}
+  .ropt-check{position:absolute;top:8px;right:8px;width:13px;height:13px;border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .25s;}
+  .ropt.sel-ac .ropt-check,.ropt.sel-ag .ropt-check,.ropt.sel-al .ropt-check{border-color:var(--gold);background:var(--gold);}
+  .ropt-check::after{content:'';width:4px;height:4px;border-radius:50%;background:var(--bg);opacity:0;transition:opacity .2s;}
+  .ropt.sel-ac .ropt-check::after,.ropt.sel-ag .ropt-check::after,.ropt.sel-al .ropt-check::after{opacity:1;}
+
+  /* Fields */
+  .fg{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+  label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+  .finput{background:#080808;border:1px solid var(--border);color:var(--white);padding:11px 16px;font-family:'DM Mono',monospace;font-size:12px;cursor:none;outline:none;transition:border-color .2s,background .2s;width:100%;}
+  .finput:focus{border-color:var(--gold);background:#0a0900;}
+  .finput::placeholder{color:#2a2a2a;}
+
+  .pwd-wrap{position:relative;}
+  .pwd-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;transition:color .2s;padding:0;}
+  .pwd-toggle:hover{color:var(--gold);}
+
+  .sucursal-wrap{display:none;margin-bottom:12px;}
+  .sucursal-wrap.vis{display:block;animation:slidein .3s ease;}
+  @keyframes slidein{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .fselect{background:#080808;border:1px solid var(--teal);color:var(--white);padding:12px 16px;font-family:'DM Mono',monospace;font-size:12px;cursor:none;outline:none;transition:border-color .2s;width:100%;appearance:none;box-shadow:0 0 0 1px rgba(15,110,86,.15);}
+  .fselect:focus{border-color:#5dcaa5;box-shadow:0 0 0 2px rgba(15,110,86,.3);}
+  .sucursal-wrap label{color:#5dcaa5 !important;}
+  .fsel-wrap{position:relative;}
+  .fsel-wrap::after{content:'▾';position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;pointer-events:none;}
+
+  /* Conditional fields */
+  .reg-only{display:none !important;}
+  .reg-only.vis{display:flex !important;}
+  .login-only{display:flex;}
+  .login-only.hid{display:none !important;}
+
+  .form-opts{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+  .remember{display:flex;align-items:center;gap:9px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);cursor:none;}
+  .chk{width:14px;height:14px;border:1px solid var(--border);background:#080808;cursor:none;appearance:none;transition:all .2s;flex-shrink:0;position:relative;}
+  .chk:checked{border-color:var(--gold);background:var(--gold);}
+  .chk:checked::after{content:'';position:absolute;top:2px;left:4px;width:4px;height:7px;border-right:1.5px solid var(--bg);border-bottom:1.5px solid var(--bg);transform:rotate(45deg);}
+  .forgot{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);cursor:none;border:none;background:none;padding:0;transition:color .2s;}
+  .forgot:hover{color:var(--gold);}
+
+  .submit-wrap{margin-top:4px;}
+  .btn-submit{width:100%;background:var(--gold);color:var(--bg);border:none;padding:14px 28px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:4px;text-transform:uppercase;cursor:none;transition:all .3s;position:relative;overflow:hidden;}
+  .btn-submit::before{content:'';position:absolute;inset:0;background:var(--white);transform:translateX(-100%);transition:transform .4s;}
+  .btn-submit:hover::before{transform:translateX(0);}
+  .btn-submit span{position:relative;z-index:1;}
+  .btn-submit.ac-btn{background:var(--gold);color:var(--bg);}
+  .btn-submit.ag-btn{background:var(--blue);color:#b5d4f4;}
+  .btn-submit.al-btn{background:var(--teal);color:#9fe1cb;}
+
+  .mode-link{text-align:center;margin-top:14px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1px;color:var(--muted);}
+  .mode-link a{color:var(--gold);cursor:none;text-decoration:none;transition:color .2s;letter-spacing:2px;text-transform:uppercase;}
+  .mode-link a:hover{color:var(--white);}
+
+  .err-msg{display:none;background:rgba(230,57,70,.08);border:1px solid rgba(230,57,70,.2);padding:10px 14px;margin-bottom:12px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--red);text-transform:uppercase;}
+  .err-msg.vis{display:block;}
+
+  .btn-submit.loading span{opacity:0;}
+  .btn-submit.loading::after{content:'';position:absolute;top:50%;left:50%;width:16px;height:16px;border:1px solid rgba(0,0,0,.3);border-top-color:var(--bg);border-radius:50%;transform:translate(-50%,-50%);animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+
+  .form-footer{padding:18px 48px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .form-footer p{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;}
+
+  .form-panel::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.015) 3px,rgba(0,0,0,.015) 4px);pointer-events:none;z-index:0;}
+
+  .success-overlay{position:fixed;inset:0;background:var(--bg);z-index:8000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+  .success-overlay.on{display:flex;}
+  .suc-icon{font-family:'Bebas Neue',sans-serif;font-size:80px;letter-spacing:3px;line-height:1;}
+  .suc-icon.ac{color:var(--gold);}.suc-icon.ag{color:#85b7eb;}.suc-icon.al{color:#5dcaa5;}
+  .suc-msg{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--muted);}
+  .suc-bar{width:200px;height:1px;background:var(--border);margin-top:8px;position:relative;overflow:hidden;}
+  .suc-bar::after{content:'';position:absolute;inset:0;background:var(--gold);animation:fill 1.5s ease forwards;}
+  @keyframes fill{from{transform:scaleX(0);transform-origin:left}to{transform:scaleX(1);transform-origin:left}}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cur"></div>
+<div class="cursor-ring" id="cring"></div>
+
+<div class="login-wrap">
+
+  <!-- LEFT PANEL -->
+  <div class="cin-panel">
+    <div class="cin-bg"></div>
+    <div class="cin-grid"></div>
+    <div class="cin-vline"></div>
+    <div class="cin-vline"></div>
+    <div class="cin-glow"></div>
+
+    <div class="filmstrip-v" id="fsv"></div>
+
+    <div class="now-badge">
+      <div class="nbdot"></div>
+      <span class="nbtxt">Sistema activo · 2026</span>
+    </div>
+
+    <div class="feat-tiles">
+      <div class="feat-tile">
+        <div class="ft-label">Sucursales</div>
+        <div class="ft-val gv">5</div>
+        <div class="ft-sub">en operación</div>
+      </div>
+      <div class="feat-tile">
+        <div class="ft-label">Boletos hoy</div>
+        <div class="ft-val bv">1,248</div>
+        <div class="ft-sub">▲ 14% vs ayer</div>
+      </div>
+      <div class="feat-tile">
+        <div class="ft-label">Ingreso del día</div>
+        <div class="ft-val tv">$184k</div>
+        <div class="ft-sub">MXN · todas las suc.</div>
+      </div>
+    </div>
+
+    <div class="cin-copy">
+      <div class="cin-eyebrow">Bienvenido a</div>
+      <div class="cin-title">
+        LUMIÈRE<br>Cinema
+        <em>Tu experiencia cinematográfica</em>
+      </div>
+      <div class="cin-divider"></div>
+      <p class="cin-desc">Inicia sesión o regístrate para disfrutar de la cartelera, comprar boletos o gestionar el sistema administrativo.</p>
+      <div class="cin-roles">
+        <div class="cin-role"><div class="crole-dot g"></div>Cliente</div>
+        <div class="cin-role"><div class="crole-dot b"></div>Admin Global</div>
+        <div class="cin-role"><div class="crole-dot t"></div>Admin Local</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT FORM PANEL -->
+  <div class="form-panel">
+    <div class="form-topbar">
+      <div class="form-logo">LUMIÈRE<span>.</span></div>
+      <button class="form-back" id="backBtn">Volver al sitio</button>
+    </div>
+
+    <div class="form-body">
+      <div class="form-eyebrow">Acceso al sistema</div>
+
+      <!-- Mode tabs -->
+      <div class="mode-tabs">
+        <button class="mode-tab on" onclick="setMode('login')">Iniciar sesión</button>
+        <button class="mode-tab" onclick="setMode('register')">Registrarse</button>
+      </div>
+
+      <div class="form-title" id="formTitle">Bienvenido de vuelta</div>
+      <p class="form-subtitle" id="formSubtitle">Ingresa tus credenciales para continuar</p>
+
+      <!-- Role selector -->
+      <div class="role-sel" id="roleSel">
+        <div class="ropt ac sel-ac" id="rAc" onclick="setRole('c')">
+          <div class="ropt-dot"></div>
+          <div class="ropt-check"></div>
+          <span class="ropt-name">Cliente</span>
+          <span class="ropt-desc">Ver cartelera</span>
+        </div>
+        <div class="ropt ag" id="rAg" onclick="setRole('ag')">
+          <div class="ropt-dot"></div>
+          <div class="ropt-check"></div>
+          <span class="ropt-name">Admin G.</span>
+          <span class="ropt-desc">Todas las suc.</span>
+        </div>
+        <div class="ropt al" id="rAl" onclick="setRole('al')">
+          <div class="ropt-dot"></div>
+          <div class="ropt-check"></div>
+          <span class="ropt-name">Admin L.</span>
+          <span class="ropt-desc">Una sucursal</span>
+        </div>
+      </div>
+
+      <!-- Sucursal (admin local only) -->
+      <div class="sucursal-wrap" id="sucWrap">
+        <div class="fg" style="margin-bottom:0;">
+          <label>Sucursal asignada</label>
+          <div class="fsel-wrap">
+            <select class="fselect" id="sucSelect">
+              <option value="">— Cargando sucursales… —</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div class="err-msg" id="errMsg"></div>
+
+      <!-- Name (register only) -->
+      <div class="fg reg-only" id="nameGroup">
+        <label>Nombre completo</label>
+        <input class="finput" type="text" id="nameInput" placeholder="Tu nombre completo" autocomplete="off">
+      </div>
+
+      <div class="fg">
+        <label>Correo electrónico</label>
+        <input class="finput" type="email" id="emailInput" placeholder="correo@ejemplo.com" autocomplete="off">
+      </div>
+
+      <div class="fg">
+        <label>Contraseña</label>
+        <div class="pwd-wrap">
+          <input class="finput" type="password" id="pwdInput" placeholder="••••••••">
+          <button class="pwd-toggle" id="pwdToggle" tabindex="-1">Mostrar</button>
+        </div>
+      </div>
+
+      <!-- Confirm password (register only) -->
+      <div class="fg reg-only" id="pwd2Group">
+        <label>Confirmar contraseña</label>
+        <input class="finput" type="password" id="pwdConfirm" placeholder="••••••••">
+      </div>
+
+      <!-- Login options (login only) -->
+      <div class="form-opts login-only" id="loginOpts">
+        <label class="remember">
+          <input type="checkbox" class="chk" id="remChk">
+          Recordar sesión
+        </label>
+        <button class="forgot" type="button">¿Olvidaste tu contraseña?</button>
+      </div>
+
+      <div class="submit-wrap">
+        <button class="btn-submit ac-btn" id="submitBtn" onclick="doSubmit()"><span id="submitText">Iniciar sesión</span></button>
+      </div>
+
+      <div class="mode-link" id="modeLink">
+        ¿No tienes cuenta? <a href="#" onclick="setMode('register');return false;">Regístrate aquí</a>
+      </div>
+    </div>
+
+    <div class="form-footer">
+      <p>© 2026 Lumière Cine</p>
+      <p id="roleStatus">Rol: Cliente</p>
+    </div>
+  </div>
+</div>
+
+<!-- Success overlay -->
+<div class="success-overlay" id="sucOverlay">
+  <div class="suc-icon ac" id="sucIcon">✦</div>
+  <div class="suc-msg" id="sucMsg">Acceso concedido · Redirigiendo…</div>
+  <div class="suc-bar"></div>
+</div>
+
+<script>
+// CURSOR
+const cur=document.getElementById('cur'),cring=document.getElementById('cring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+(function a(){cur.style.left=mx+'px';cur.style.top=my+'px';rx+=(mx-rx)*.15;ry+=(my-ry)*.15;cring.style.left=rx+'px';cring.style.top=ry+'px';requestAnimationFrame(a);})();
+function ah(el){el.addEventListener('mouseenter',()=>{cur.classList.add('h');cring.classList.add('h');});el.addEventListener('mouseleave',()=>{cur.classList.remove('h');cring.classList.remove('h');});}
+document.querySelectorAll('button,.ropt,.feat-tile,.finput,.fselect,.chk,.mode-tab').forEach(ah);
+
+// Film strip holes
+const fsv=document.getElementById('fsv');
+for(let i=0;i<60;i++){const h=document.createElement('div');h.className='fs-hole';fsv.appendChild(h);}
+
+// ── AUTH via API ──
+
+// STATE
+let role='c';
+let mode='login';
+
+// MODE SWITCH
+function setMode(m){
+  mode=m;
+  const tabs=document.querySelectorAll('.mode-tab');
+  tabs[0].classList.toggle('on',m==='login');
+  tabs[1].classList.toggle('on',m==='register');
+  const regFields=document.querySelectorAll('.reg-only');
+  const loginFields=document.querySelectorAll('.login-only');
+  if(m==='register'){
+    regFields.forEach(f=>f.classList.add('vis'));
+    loginFields.forEach(f=>f.classList.add('hid'));
+    document.getElementById('formTitle').textContent='Crear cuenta';
+    document.getElementById('formSubtitle').textContent='Completa tus datos para registrarte';
+    document.getElementById('submitText').textContent='Crear cuenta';
+    document.getElementById('modeLink').innerHTML='¿Ya tienes cuenta? <a href="#" onclick="setMode(\'login\');return false;">Inicia sesión</a>';
+  } else {
+    regFields.forEach(f=>f.classList.remove('vis'));
+    loginFields.forEach(f=>f.classList.remove('hid'));
+    document.getElementById('formTitle').textContent='Bienvenido de vuelta';
+    document.getElementById('formSubtitle').textContent='Ingresa tus credenciales para continuar';
+    document.getElementById('submitText').textContent='Iniciar sesión';
+    document.getElementById('modeLink').innerHTML='¿No tienes cuenta? <a href="#" onclick="setMode(\'register\');return false;">Regístrate aquí</a>';
+  }
+  document.getElementById('errMsg').classList.remove('vis');
+}
+
+// ROLE SWITCH
+function setRole(r){
+  role=r;
+  document.getElementById('rAc').classList.remove('sel-ac');
+  document.getElementById('rAg').classList.remove('sel-ag');
+  document.getElementById('rAl').classList.remove('sel-al');
+  const btn=document.getElementById('submitBtn');
+  btn.classList.remove('ac-btn','ag-btn','al-btn');
+  const suc=document.getElementById('sucWrap');
+  const status=document.getElementById('roleStatus');
+  if(r==='c'){
+    document.getElementById('rAc').classList.add('sel-ac');
+    suc.classList.remove('vis');btn.classList.add('ac-btn');
+    status.textContent='Rol: Cliente';
+  } else if(r==='ag'){
+    document.getElementById('rAg').classList.add('sel-ag');
+    suc.classList.remove('vis');btn.classList.add('ag-btn');
+    status.textContent='Rol: Admin Global';
+  } else {
+    document.getElementById('rAl').classList.add('sel-al');
+    suc.classList.add('vis');btn.classList.add('al-btn');
+    status.textContent='Rol: Admin Local';
+  }
+}
+setRole('c');
+
+// PASSWORD TOGGLE
+document.getElementById('pwdToggle').addEventListener('click',()=>{
+  const p=document.getElementById('pwdInput');
+  const show=p.type==='password';
+  p.type=show?'text':'password';
+  document.getElementById('pwdToggle').textContent=show?'Ocultar':'Mostrar';
+});
+
+// SHOW ERROR
+function showError(msg){
+  const err=document.getElementById('errMsg');
+  err.textContent=msg;err.classList.add('vis');
+}
+
+// SUBMIT DISPATCHER
+function doSubmit(){
+  if(mode==='login') doLogin(); else doRegister();
+}
+
+// LOGIN
+function doLogin(){
+  const email=document.getElementById('emailInput').value.trim();
+  const pwd=document.getElementById('pwdInput').value;
+  document.getElementById('errMsg').classList.remove('vis');
+  if(!email||!pwd){showError('Por favor completa todos los campos.');return;}
+  if(role==='al'&&!document.getElementById('sucSelect').value){showError('Selecciona una sucursal.');return;}
+
+  const btn=document.getElementById('submitBtn');
+  btn.classList.add('loading');
+  fetch('/api/login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({email,password:pwd,role,sucursal:role==='al'?document.getElementById('sucSelect').value:''})
+  })
+  .then(r=>r.json().then(d=>({ok:r.ok,data:d})))
+  .then(({ok,data})=>{
+    btn.classList.remove('loading');
+    if(!ok){showError(data.error);return;}
+    localStorage.setItem('lumiere_session',JSON.stringify(data));
+    showSuccess(data.role);
+  })
+  .catch(()=>{
+    btn.classList.remove('loading');
+    showError('Error de conexión con el servidor.');
+  });
+}
+
+// REGISTER
+function doRegister(){
+  const name=document.getElementById('nameInput').value.trim();
+  const email=document.getElementById('emailInput').value.trim();
+  const pwd=document.getElementById('pwdInput').value;
+  const pwd2=document.getElementById('pwdConfirm').value;
+  document.getElementById('errMsg').classList.remove('vis');
+  if(!name||!email||!pwd||!pwd2){showError('Por favor completa todos los campos.');return;}
+  if(pwd.length<6){showError('La contraseña debe tener al menos 6 caracteres.');return;}
+  if(pwd!==pwd2){showError('Las contraseñas no coinciden.');return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showError('Ingresa un correo electrónico válido.');return;}
+  if(role==='al'&&!document.getElementById('sucSelect').value){showError('Selecciona una sucursal.');return;}
+
+  const btn=document.getElementById('submitBtn');
+  btn.classList.add('loading');
+  fetch('/api/register',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name,email,password:pwd,role,sucursal:role==='al'?document.getElementById('sucSelect').value:''})
+  })
+  .then(r=>r.json().then(d=>({ok:r.ok,data:d})))
+  .then(({ok,data})=>{
+    btn.classList.remove('loading');
+    if(!ok){showError(data.error);return;}
+    localStorage.setItem('lumiere_session',JSON.stringify(data));
+    showSuccess(data.role);
+  })
+  .catch(()=>{
+    btn.classList.remove('loading');
+    showError('Error de conexión con el servidor.');
+  });
+}
+
+// SUCCESS & REDIRECT
+function showSuccess(r){
+  const icon=document.getElementById('sucIcon');
+  const msg=document.getElementById('sucMsg');
+  const labels={c:'Cliente',ag:'Admin Global',al:'Admin Local'};
+  const icons={c:'✦',ag:'AG',al:'AL'};
+  icon.className='suc-icon '+(r==='c'?'ac':r);
+  icon.textContent=icons[r];
+  msg.textContent=labels[r]+' · Acceso concedido';
+  document.getElementById('sucOverlay').classList.add('on');
+  setTimeout(()=>{window.location.href='admUsu.html';},2000);
+}
+
+// Enter key
+document.addEventListener('keydown',e=>{if(e.key==='Enter')doSubmit();});
+
+// Back button
+document.getElementById('backBtn').addEventListener('click',()=>{window.history.back();});
+
+// Auto-redirect if session exists on server
+fetch('/api/session').then(r=>{if(r.ok)window.location.href='admUsu.html';}).catch(()=>{});
+
+// Cargar sucursales reales para el selector de Admin Local
+fetch('/api/sucursales/publicas')
+  .then(r=>r.json())
+  .then(list=>{
+    const sel = document.getElementById('sucSelect');
+    sel.innerHTML = '<option value="">— Selecciona tu sucursal —</option>' +
+      list.map(s=>`<option value="${s.nombre}">${s.nombre}</option>`).join('');
+  })
+  .catch(()=>{
+    document.getElementById('sucSelect').innerHTML =
+      '<option value="">— No se pudieron cargar las sucursales —</option>';
+  });
+</script>
+</body>
+</html>

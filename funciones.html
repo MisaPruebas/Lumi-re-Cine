@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>LUMIÈRE — Funciones</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Bebas+Neue&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="phead">
+  <div class="plabel">Programación · Funciones</div>
+  <h1 class="ptitle">Funciones</h1>
+  <p class="psub">Programa horarios, salas y precios para cada película</p>
+</div>
+
+<section>
+  <div class="row" style="margin-bottom:22px">
+    <div class="stitle" style="margin-bottom:0">Programación</div>
+    <div class="spacer"></div>
+    <select id="filtroSucursal" style="width:220px" onchange="cargar()"></select>
+    <input id="filtroFecha" type="date" style="width:160px" onchange="cargar()">
+    <button class="btn bo bsm" onclick="document.getElementById('filtroFecha').value='';cargar()">Limpiar fecha</button>
+    <button class="btn bb" onclick="abrirMasivo()">+ Programación masiva</button>
+    <button class="btn bg" onclick="abrirNueva()">+ Nueva función</button>
+  </div>
+  <table id="tbl">
+    <thead><tr>
+      <th>Película</th><th>Sucursal · Sala</th><th>Fecha</th><th>Hora</th><th>Precio</th><th>VIP</th><th>Estado</th><th style="width:160px">Acciones</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="empty" class="empty" style="display:none">Sin funciones para los filtros seleccionados.</div>
+</section>
+
+<footer><p>© 2026 Lumière Cine</p><p>Vista: Funciones</p></footer>
+
+<div class="moverlay" id="mfun">
+  <div class="modal">
+    <div class="modaltitle" id="mtitle">Nueva función</div>
+    <div class="frow">
+      <div class="fg"><label>Película</label><select id="f_pelicula"></select></div>
+      <div class="fg"><label>Sala</label><select id="f_sala"></select></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>Fecha</label><input id="f_fecha" type="date"></div>
+      <div class="fg"><label>Hora</label><input id="f_hora" type="time"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>Precio general (MXN)</label><input id="f_precio" type="number" step="0.01" value="130"></div>
+      <div class="fg"><label>Precio VIP (MXN)</label><input id="f_precio_vip" type="number" step="0.01" value="180"></div>
+    </div>
+    <div class="frow f1">
+      <div class="fg"><label>Estado</label>
+        <select id="f_estado"><option>Activa</option><option>Cancelada</option><option>Llena</option></select>
+      </div>
+    </div>
+    <div class="macts">
+      <button class="btn bo" onclick="closeModal('mfun')">Cancelar</button>
+      <button class="btn bg" onclick="guardar()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="moverlay" id="mmasivo">
+  <div class="modal" style="width:680px">
+    <div class="modaltitle">Programación masiva</div>
+    <p style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:18px">
+      Programa la misma película en múltiples salas, días y horarios en una sola operación.
+      Las combinaciones que ya existan se omitirán automáticamente.
+    </p>
+
+    <div class="frow f1"><div class="fg">
+      <label>Película</label>
+      <select id="m_pelicula"></select>
+    </div></div>
+
+    <div class="frow f1"><div class="fg">
+      <label>Salas (selecciona una o más)</label>
+      <div class="chklist" id="m_salas"></div>
+    </div></div>
+
+    <div class="frow">
+      <div class="fg"><label>Desde</label><input id="m_desde" type="date"></div>
+      <div class="fg"><label>Hasta</label><input id="m_hasta" type="date"></div>
+    </div>
+
+    <div class="frow f1"><div class="fg">
+      <label>Horarios (presiona Enter o "+")</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input id="m_horario_in" type="time" style="width:140px">
+        <button class="btn bo bsm" type="button" onclick="agregarHorario()">+</button>
+      </div>
+      <div class="chiprow" id="m_horarios"></div>
+    </div></div>
+
+    <div class="frow">
+      <div class="fg"><label>Precio general (MXN)</label><input id="m_precio" type="number" step="0.01" value="130"></div>
+      <div class="fg"><label>Precio VIP (MXN)</label><input id="m_precio_vip" type="number" step="0.01" value="180"></div>
+    </div>
+
+    <div id="m_preview" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:14px;padding:10px 14px;border:1px dashed var(--border);background:#0a0a0a"></div>
+
+    <div class="macts">
+      <button class="btn bo" onclick="closeModal('mmasivo')">Cancelar</button>
+      <button class="btn bb" onclick="guardarMasivo()">Programar</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+renderTopbar('funciones');
+
+if (!['ag','al'].includes(session.role)) {
+  document.body.innerHTML = '<div class="empty" style="padding:120px">Sin permisos para esta sección.</div>';
+}
+
+let editing = null;
+let peliculas = [], salas = [], sucursales = [];
+
+async function cargarBases(){
+  [peliculas, sucursales] = await Promise.all([
+    api('GET','/api/peliculas'),
+    api('GET','/api/sucursales')
+  ]);
+  const flt = document.getElementById('filtroSucursal');
+  flt.innerHTML = '<option value="">Todas las sucursales</option>' + sucursales.map(s=>`<option value="${s.id_sucursal}">${s.nombre}</option>`).join('');
+  if (session.role === 'al' && session.sucursal) {
+    const m = sucursales.find(s=>s.nombre===session.sucursal);
+    if (m) { flt.value = m.id_sucursal; flt.disabled = true; }
+  }
+  document.getElementById('f_pelicula').innerHTML = peliculas.map(p=>`<option value="${p.id_pelicula}">${p.nombre}</option>`).join('');
+  await cargarSalasModal();
+}
+
+async function cargarSalasModal(){
+  const sucId = document.getElementById('filtroSucursal').value;
+  const url = '/api/salas' + (sucId ? '?id_sucursal='+sucId : '');
+  salas = await api('GET', url);
+  document.getElementById('f_sala').innerHTML = salas.map(s=>`<option value="${s.id_sala}">${s.sucursal} — ${s.nombre} (${s.tipo||''})</option>`).join('');
+}
+
+async function cargar(){
+  try {
+    await cargarSalasModal();
+    const params = new URLSearchParams();
+    const sucId = document.getElementById('filtroSucursal').value;
+    const fecha = document.getElementById('filtroFecha').value;
+    if (sucId) params.set('id_sucursal', sucId);
+    if (fecha) params.set('fecha', fecha);
+    const data = await api('GET','/api/funciones?'+params.toString());
+    const tb = document.getElementById('tbody');
+    tb.innerHTML = '';
+    document.getElementById('empty').style.display = data.length ? 'none' : 'block';
+    document.getElementById('tbl').style.display = data.length ? '' : 'none';
+    data.forEach(f => {
+      const fechaTxt = (f.fecha+'').slice(0,10);
+      const horaTxt = (f.horario+'').slice(0,5);
+      const cls = f.estado==='Activa'?'bgn':(f.estado==='Cancelada'?'brd':'bam');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${f.pelicula}<br><span class="tdmono">${f.duracion||''} · ${f.clasificacion||''}</span></td>
+        <td class="tdmono">${f.sucursal} · ${f.sala} (${f.sala_tipo||''})</td>
+        <td class="tdmono">${fechaTxt}</td>
+        <td class="tdmono">${horaTxt}</td>
+        <td class="tdmono">$${parseFloat(f.precio||0).toFixed(2)}</td>
+        <td class="tdmono">$${parseFloat(f.precio_vip||0).toFixed(2)}</td>
+        <td><span class="badge ${cls}">${f.estado}</span></td>
+        <td><div class="acts">
+          <button class="btn bo bsm">Editar</button>
+          <button class="btn br bsm">Eliminar</button>
+        </div></td>`;
+      tr.querySelector('.bo').onclick = () => abrirEditar(f);
+      tr.querySelector('.br').onclick = () => eliminar(f);
+      tb.appendChild(tr);
+    });
+    bindHoverAll();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+function abrirNueva(){
+  editing = null;
+  document.getElementById('mtitle').textContent = 'Nueva función';
+  document.getElementById('f_fecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('f_hora').value = '18:00';
+  document.getElementById('f_precio').value = 130;
+  document.getElementById('f_precio_vip').value = 180;
+  document.getElementById('f_estado').value = 'Activa';
+  openModal('mfun');
+}
+
+function abrirEditar(f){
+  editing = f.id_funcion;
+  document.getElementById('mtitle').textContent = 'Editar función';
+  document.getElementById('f_pelicula').value = f.id_pelicula;
+  document.getElementById('f_sala').value = f.id_sala;
+  document.getElementById('f_fecha').value = (f.fecha+'').slice(0,10);
+  document.getElementById('f_hora').value = (f.horario+'').slice(0,5);
+  document.getElementById('f_precio').value = f.precio;
+  document.getElementById('f_precio_vip').value = f.precio_vip;
+  document.getElementById('f_estado').value = f.estado || 'Activa';
+  openModal('mfun');
+}
+
+async function guardar(){
+  const body = {
+    id_pelicula: parseInt(document.getElementById('f_pelicula').value),
+    id_sala: parseInt(document.getElementById('f_sala').value),
+    fecha: document.getElementById('f_fecha').value,
+    horario: document.getElementById('f_hora').value,
+    precio: parseFloat(document.getElementById('f_precio').value),
+    precio_vip: parseFloat(document.getElementById('f_precio_vip').value),
+    estado: document.getElementById('f_estado').value
+  };
+  if (!body.fecha || !body.horario) { toast('Fecha y hora son obligatorias','err'); return; }
+  try {
+    if (editing) await api('PUT','/api/funciones/'+editing, body);
+    else await api('POST','/api/funciones', body);
+    closeModal('mfun');
+    toast(editing?'Función actualizada':'Función creada');
+    cargar();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function eliminar(f){
+  if (!confirm('¿Eliminar la función de "'+f.pelicula+'" del '+(f.fecha+'').slice(0,10)+'?')) return;
+  try { await api('DELETE','/api/funciones/'+f.id_funcion); toast('Eliminada'); cargar(); }
+  catch(e){ toast(e.message,'err'); }
+}
+
+// ═══ Programación masiva (RF6) ═══
+let mHorarios = [];
+
+function abrirMasivo(){
+  // Película
+  document.getElementById('m_pelicula').innerHTML =
+    peliculas.map(p=>`<option value="${p.id_pelicula}">${p.nombre}</option>`).join('');
+
+  // Salas agrupadas por sucursal — el AL sólo ve las suyas (ya viene filtrado por la BD si está bloqueado el filtro)
+  const cont = document.getElementById('m_salas');
+  if (salas.length === 0) {
+    cont.innerHTML = '<div class="empty" style="padding:18px">Sin salas disponibles. Crea sucursales y salas primero.</div>';
+  } else {
+    const porSuc = {};
+    salas.forEach(s => { (porSuc[s.sucursal] = porSuc[s.sucursal] || []).push(s); });
+    cont.innerHTML = Object.entries(porSuc).map(([suc, list]) => `
+      <div class="chklist-group">${suc} <small style="font-family:inherit;float:right">
+        <a href="#" onclick="event.preventDefault();toggleGrupoSalas('${suc.replace(/'/g,"\\'")}')" style="color:var(--muted);text-decoration:underline">marcar todas</a>
+      </small></div>
+      ${list.map(s=>`
+        <label class="chklist-item">
+          <input type="checkbox" name="m_sala_${suc.replace(/[^a-z0-9]/gi,'')}" value="${s.id_sala}" onchange="actualizarPreview()">
+          ${s.nombre}<small>${s.tipo||''}</small>
+        </label>`).join('')}
+    `).join('');
+  }
+
+  document.getElementById('m_desde').value = new Date().toISOString().slice(0,10);
+  const enUnaSemana = new Date(); enUnaSemana.setDate(enUnaSemana.getDate()+6);
+  document.getElementById('m_hasta').value = enUnaSemana.toISOString().slice(0,10);
+  document.getElementById('m_desde').onchange = actualizarPreview;
+  document.getElementById('m_hasta').onchange = actualizarPreview;
+
+  mHorarios = [];
+  renderHorarios();
+  openModal('mmasivo');
+  bindHoverAll();
+}
+
+function toggleGrupoSalas(suc){
+  const key = suc.replace(/[^a-z0-9]/gi,'');
+  const checks = document.querySelectorAll(`input[name="m_sala_${key}"]`);
+  const allOn = Array.from(checks).every(c => c.checked);
+  checks.forEach(c => c.checked = !allOn);
+  actualizarPreview();
+}
+
+function agregarHorario(){
+  const v = document.getElementById('m_horario_in').value;
+  if (!v) return;
+  if (!mHorarios.includes(v)) mHorarios.push(v);
+  mHorarios.sort();
+  document.getElementById('m_horario_in').value = '';
+  renderHorarios();
+}
+
+function quitarHorario(h){
+  mHorarios = mHorarios.filter(x => x !== h);
+  renderHorarios();
+}
+
+function renderHorarios(){
+  const c = document.getElementById('m_horarios');
+  c.innerHTML = mHorarios.length === 0
+    ? '<small style="color:var(--muted);font-family:DM Mono,monospace;font-size:10px">Aún sin horarios</small>'
+    : mHorarios.map(h => `<span class="chip">${h}<span class="x" onclick="quitarHorario('${h}')">✕</span></span>`).join('');
+  bindHoverAll();
+  actualizarPreview();
+}
+
+function actualizarPreview(){
+  const salasSel = document.querySelectorAll('#m_salas input[type=checkbox]:checked').length;
+  const desde = document.getElementById('m_desde').value;
+  const hasta = document.getElementById('m_hasta').value;
+  let dias = 0;
+  if (desde && hasta) {
+    const d1 = new Date(desde), d2 = new Date(hasta);
+    if (d2 >= d1) dias = Math.round((d2 - d1) / 86400000) + 1;
+  }
+  const total = salasSel * dias * mHorarios.length;
+  document.getElementById('m_preview').textContent =
+    `→ ${salasSel} sala(s) × ${dias} día(s) × ${mHorarios.length} horario(s) = ${total} función(es) a crear (las duplicadas se omiten)`;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'm_horario_in') {
+    e.preventDefault();
+    agregarHorario();
+  }
+});
+
+async function guardarMasivo(){
+  const id_salas = Array.from(document.querySelectorAll('#m_salas input[type=checkbox]:checked')).map(c => Number(c.value));
+  if (id_salas.length === 0) { toast('Selecciona al menos una sala', 'err'); return; }
+  if (mHorarios.length === 0) { toast('Agrega al menos un horario', 'err'); return; }
+
+  const body = {
+    id_pelicula: Number(document.getElementById('m_pelicula').value),
+    id_salas,
+    fecha_desde: document.getElementById('m_desde').value,
+    fecha_hasta: document.getElementById('m_hasta').value,
+    horarios: mHorarios,
+    precio: Number(document.getElementById('m_precio').value),
+    precio_vip: Number(document.getElementById('m_precio_vip').value),
+    estado: 'Activa'
+  };
+
+  try {
+    const r = await api('POST', '/api/funciones/masivo', body);
+    closeModal('mmasivo');
+    toast(`${r.insertadas} función(es) creada(s)` + (r.omitidas ? ` · ${r.omitidas} duplicada(s) omitida(s)` : ''));
+    cargar();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+(async()=>{ await cargarBases(); cargar(); })();
+</script>
+</body>
+</html>

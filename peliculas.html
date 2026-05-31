@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>LUMIÈRE — Películas</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Bebas+Neue&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div class="phead">
+  <div class="plabel">Admin global · Catálogo de películas</div>
+  <h1 class="ptitle">Películas</h1>
+  <p class="psub">Alta, edición y baja del catálogo cinematográfico</p>
+</div>
+
+<section>
+  <div class="row" style="margin-bottom:22px">
+    <div class="stitle" style="margin-bottom:0">Catálogo</div>
+    <div class="spacer"></div>
+    <button class="btn bg" onclick="abrirNueva()">+ Nueva película</button>
+  </div>
+  <table id="tbl">
+    <thead><tr>
+      <th>Nombre</th><th>Categoría</th><th>Clasificación</th><th>Duración</th><th style="width:160px">Acciones</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="empty" class="empty" style="display:none">No hay películas registradas todavía.</div>
+</section>
+
+<footer><p>© 2026 Lumière Cine</p><p>Vista: Admin Global · Películas</p></footer>
+
+<div class="moverlay" id="mfilm">
+  <div class="modal">
+    <div class="modaltitle" id="mtitle">Nueva película</div>
+    <div class="frow f1"><div class="fg"><label>Nombre</label><input id="f_nombre" placeholder="Título de la película"></div></div>
+    <div class="frow">
+      <div class="fg"><label>Categoría / Género</label>
+        <select id="f_categoria">
+          <option value="Acción">Acción</option><option value="Aventura">Aventura</option>
+          <option value="Comedia">Comedia</option><option value="Drama">Drama</option>
+          <option value="Terror">Terror</option><option value="Sci-Fi">Sci-Fi</option>
+          <option value="Romance">Romance</option><option value="Animación">Animación</option>
+          <option value="Documental">Documental</option><option value="Thriller">Thriller</option>
+        </select>
+      </div>
+      <div class="fg"><label>Clasificación</label>
+        <select id="f_clasif">
+          <option value="AA">AA</option><option value="A">A</option>
+          <option value="B">B</option><option value="B15">B15</option>
+          <option value="C">C</option><option value="D">D</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow f1"><div class="fg"><label>Duración (ej. 2h 15min)</label><input id="f_duracion" placeholder="1h 45min"></div></div>
+    <div class="macts">
+      <button class="btn bo" onclick="closeModal('mfilm')">Cancelar</button>
+      <button class="btn bg" onclick="guardar()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+renderTopbar('peliculas');
+
+if (session.role !== 'ag') {
+  document.body.innerHTML = '<div class="empty" style="padding:120px">Esta sección requiere rol de Admin Global.</div>';
+}
+
+let editing = null;
+
+async function cargar(){
+  try {
+    const data = await api('GET','/api/peliculas');
+    const tb = document.getElementById('tbody');
+    tb.innerHTML = '';
+    document.getElementById('empty').style.display = data.length ? 'none' : 'block';
+    document.getElementById('tbl').style.display = data.length ? '' : 'none';
+    data.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${p.nombre}</td>
+        <td><span class="badge bbl">${p.categoria||'—'}</span></td>
+        <td class="tdmono">${p.clasificacion||'—'}</td>
+        <td class="tdmono">${p.duracion||'—'}</td>
+        <td><div class="acts">
+          <button class="btn bo bsm">Editar</button>
+          <button class="btn br bsm">Eliminar</button>
+        </div></td>`;
+      tr.querySelector('.bo').onclick = () => abrirEditar(p);
+      tr.querySelector('.br').onclick = () => eliminar(p);
+      tb.appendChild(tr);
+    });
+    bindHoverAll();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+function abrirNueva(){
+  editing = null;
+  document.getElementById('mtitle').textContent = 'Nueva película';
+  document.getElementById('f_nombre').value = '';
+  document.getElementById('f_categoria').value = 'Drama';
+  document.getElementById('f_clasif').value = 'B';
+  document.getElementById('f_duracion').value = '';
+  openModal('mfilm');
+}
+
+function abrirEditar(p){
+  editing = p.id_pelicula;
+  document.getElementById('mtitle').textContent = 'Editar película';
+  document.getElementById('f_nombre').value = p.nombre;
+  document.getElementById('f_categoria').value = p.categoria || 'Drama';
+  document.getElementById('f_clasif').value = p.clasificacion || 'B';
+  document.getElementById('f_duracion').value = p.duracion || '';
+  openModal('mfilm');
+}
+
+async function guardar(){
+  const body = {
+    nombre: document.getElementById('f_nombre').value.trim(),
+    categoria: document.getElementById('f_categoria').value,
+    clasificacion: document.getElementById('f_clasif').value,
+    duracion: document.getElementById('f_duracion').value.trim()
+  };
+  if (!body.nombre) { toast('El nombre es obligatorio','err'); return; }
+  try {
+    if (editing) await api('PUT','/api/peliculas/'+editing, body);
+    else await api('POST','/api/peliculas', body);
+    closeModal('mfilm');
+    toast(editing?'Película actualizada':'Película creada');
+    cargar();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+async function eliminar(p){
+  if (!confirm('¿Eliminar la película "'+p.nombre+'"?')) return;
+  try { await api('DELETE','/api/peliculas/'+p.id_pelicula); toast('Eliminada'); cargar(); }
+  catch(e){ toast(e.message,'err'); }
+}
+
+cargar();
+</script>
+</body>
+</html>
