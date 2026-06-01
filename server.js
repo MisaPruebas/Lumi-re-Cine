@@ -46,7 +46,7 @@ try {
     mailer = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false, // false para puerto 587
+      secure: process.env.SMTP_PORT === '465' ? true : false, // true para 465, false para 587
       auth: { 
         user: process.env.SMTP_USER, 
         pass: process.env.SMTP_PASS 
