@@ -125,3 +125,4 @@ INSERT INTO usuarios (nombre, email, contrasena, rol, id_sucursal, ultimo_acceso
 ('Carlos Mendoza', 'admin@lumiere.mx',   'Admin123',   'ag', NULL, NOW(), 'Activo'),
 ('Laura Ríos',     'local@lumiere.mx',   'Local123',   'al', 1,    NOW(), 'Activo'),
 ('Juan Pérez',     'cliente@lumiere.mx', 'Cliente123', 'c',  NULL, NOW(), 'Activo');
+

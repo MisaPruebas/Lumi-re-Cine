@@ -110,3 +110,6 @@ INSERT INTO usuarios (nombre, email, contrasena, rol, id_sucursal, ultimo_acceso
 ('Tomás Guerrero', 'tomas@lumiere.mx', 'Local123', 'al', 2,    DATE_SUB(NOW(), INTERVAL 14 HOUR), 'Inactivo'),
 ('María Solís',    'maria@lumiere.mx', 'Local123', 'al', 4,    NOW(), 'Activo'),
 ('Ana López',      'ana@lumiere.mx',   'Cliente1', 'c',  NULL, NOW(), 'Activo');
+
+select * from ventas;
+select * from usuarios;
